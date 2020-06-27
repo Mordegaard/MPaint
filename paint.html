@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<head>
+  <title>о да это пэинт</title>
+  <link rel="stylesheet" type="text/css" href="styles.css">
+  <script src="js/jquery-3.4.1.min.js"></script>
+  <script src="js/colors.js"></script>
+  <script src="js/mainCode.js"></script>
+</head>
+
+<body>
+<script>
+function getRand(min, max) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min)) + min;
+}
+</script>
+
+<div id="pagemax">
+  <div id="sticky-navbar">
+    <div class="options flexed">
+    <div class="btn" id="clearButton">Очистить</div>
+    <span class="flexed" style="color: white; height: 100%; margin: 0px 15px;">Размер пера: </span>
+    <div class="slider flexed" id="size_slider">
+      <div class="slider_button"></div> <div class="slider_line"><div></div></div>
+    </div>
+    <span class="flexed brush_size" style="color: white; height: 100%; margin: 0px 10px;">2px</span>
+    <div class="flexed" id="inst-settings"></div>
+    </div>
+  
+    <div class="options flexed" style="margin-right: 20px;">
+      <div class="button flexed" id="downloadButton" title="Скачать изображение"><img src="icons/download-solid.svg" height="100%"/></div>
+      <div class="button flexed" id="imageButton" title="Загрузить изображение"><img src="icons/images-solid.svg" height="100%"/></div>
+    </div>
+  </div>
+
+<div class="actions">
+<div class="flexed" id="instruments">
+    <div class="flexed" id="colorButton" style="background: var(--main-col); color: black;"><svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="palette" width="100%" class="svg-inline--fa fa-palette fa-w-16" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M204.3 5C104.9 24.4 24.8 104.3 5.2 203.4c-37 187 131.7 326.4 258.8 306.7 41.2-6.4 61.4-54.6 42.5-91.7-23.1-45.4 9.9-98.4 60.9-98.4h79.7c35.8 0 64.8-29.6 64.9-65.3C511.5 97.1 368.1-26.9 204.3 5zM96 320c-17.7 0-32-14.3-32-32s14.3-32 32-32 32 14.3 32 32-14.3 32-32 32zm32-128c-17.7 0-32-14.3-32-32s14.3-32 32-32 32 14.3 32 32-14.3 32-32 32zm128-64c-17.7 0-32-14.3-32-32s14.3-32 32-32 32 14.3 32 32-14.3 32-32 32zm128 64c-17.7 0-32-14.3-32-32s14.3-32 32-32 32 14.3 32 32-14.3 32-32 32z"></path></svg></div>
+    <div class="button flexed" id="pipetteButton" title="Пипетка"><img src="icons/eye-dropper-solid.svg" height="100%"/></div>
+    <div class="button flexed" id="brushButton" title="[B] Кисть"><img src="icons/paint-brush-solid.svg" height="100%"/></div>
+    <div class="button flexed" id="eraserButton" title="[E] Ластик"><img src="icons/eraser-solid.svg" height="100%"/></div>
+    <div class="button flexed" id="lineButton" title="Линия"><div></div></div>
+    <div class="button flexed" id="rectButton" title="Прямоугольник"><div></div></div>
+    <div class="button flexed" id="arcButton" title="Эллипс"><div></div></div>
+    <div class="button flexed" id="textButton" title="Текст">T</div>
+</div>
+  <div class="canvases" style="height: 600px; position: relative; width: 1200px;">
+    <div class="canvas_overflow"><div id="addedImage"></div></div>
+    <canvas height="600px" id="dl_canvas" style="display: none;" width="1200"></canvas>
+    <canvas height="600px" id="bg_canvas" style="z-index: -1;" width="1200"></canvas>
+    <canvas height="600px" id="main_canvas" style="z-index: 0;" width="1200"></canvas>
+    <canvas height="600px" id="undo_canvas2" style="display: none;" width="1200"></canvas>
+    <canvas height="600px" id="undo_canvas1" style="z-index: 1;" width="1200"></canvas>
+    <div id="image_border">
+      <div class="in_image_border">
+        <div class="imgBorder" id="imgBordLT"></div>
+        <div class="imgBorder" id="imgBordLB"></div>
+        <div class="imgBorder" id="imgBordRT"></div>
+        <div class="imgBorder" id="imgBordRB"></div>
+        <div id="full_img_border"></div>
+        <div class="imgApply flexed">✔</div>
+        <div class="imgCancel flexed">×</div>
+      </div>
+    </div>
+    <div id="text_border">
+      <div class="in_text_border">
+        <div class="imgApply flexed">✔</div>
+        <div class="imgCancel flexed">×</div>
+        <input id="addedText" type="text" value="ВВЕДИТЕ ТЕКСТ" />
+      </div>
+    </div>
+  </div>
+  
+  <div class="color_square_container flexed">
+      <div class="color_square_line flexed">
+      <div id="color_square" onclick="color_sqr(event)">
+        <div id="color_selector"></div>
+        <div class="color_sqr sqr1"></div> <div class="color_sqr sqr2"></div>
+      </div>
+      <div class="color_line" onclick="color_line(event)"><div></div></div>
+      <div class="transparent_line"><div class="bump"></div><div class="transparent_line_in"></div></div>
+      </div>
+      <div class="color_buttons flexed">
+        <div class="flexed" style="height: 100%; width: 70%;">
+          <div class="colorBtn flexed" id="updateBrush" style="background: var(--main-col);" title="Изменить основной цвет инструмента"><i class="fas fa-paint-brush"></i>1</div>
+          <img src="icons/exchange-alt-solid.svg" id="exchange-colors" style="height: 70%; margin: 0px 6px;" title="[X] Поменять цвета местами"/>
+          <div class="colorBtn flexed" id="updateBrush2" style="background: var(--sec-col); color: white;" title="Изменить второстепенный цвет инструмента">2</div>
+        </div>
+        <div class="colorBtn flexed" id="updateBackground" style="background: var(--bg-col);" title="Изменить цвет фона"><svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="th-large" class="svg-inline--fa fa-th-large fa-w-16" height="50%" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M296 32h192c13.255 0 24 10.745 24 24v160c0 13.255-10.745 24-24 24H296c-13.255 0-24-10.745-24-24V56c0-13.255 10.745-24 24-24zm-80 0H24C10.745 32 0 42.745 0 56v160c0 13.255 10.745 24 24 24h192c13.255 0 24-10.745 24-24V56c0-13.255-10.745-24-24-24zM0 296v160c0 13.255 10.745 24 24 24h192c13.255 0 24-10.745 24-24V296c0-13.255-10.745-24-24-24H24c-13.255 0-24 10.745-24 24zm296 184h192c13.255 0 24-10.745 24-24V296c0-13.255-10.745-24-24-24H296c-13.255 0-24 10.745-24 24v160c0 13.255 10.745 24 24 24z"></path></svg></div>
+      </div>
+    </div>
+  
+<div class="layers_container">
+  <div class="show-hide-btn flexed"></div>
+  <div class="layers_cont flexed">
+    <span style="color: white; margin: 24px 0px;">В РАЗРАБОТКЕ</span>
+    <div class="flexed" id="addlayer_btn">+</div>
+    <div class="layers flexed">
+      <div class="layer flexed">
+        <div class="layer_num flexed">0</div> <span class="layer_name">Фон</span>
+      </div>
+      <div class="layer draw flexed" id="l1">
+        <div class="layer_num flexed">1</div> <span class="layer_name">Слой</span>
+      </div>
+    </div>
+  </div>
+</div>
+  
+  <div id="cursor"></div>
+  
+  <div class="overlay_container flexed">
+    <div class="overlay_dark"></div>
+    <div class="overlay flexed">
+      <h3>Добавить изображение</h3>
+      <div class="flexed" style="width: 100%;"><input name="file" type="radio" value="file" /><input id="imageFile" placeholder="" style="color: black;" type="file" /></div>
+      <div class="flexed" style="width: 100%;"><input checked="" name="file" type="radio" value="url" /><input id="imageLink" placeholder="" type="text" /></div>
+      <div class="flexed" style="width: 100%;"><span>Вы также можете вставить изображение из буфера обмена: Ctrl + V</span></div>
+      <div class="btn" id="addImage">Добавить</div>
+      <span class="errorText"></span>
+    </div>
+  </div>
+  
+  
+</div>
+
+</div>
+</body>
+</html>
