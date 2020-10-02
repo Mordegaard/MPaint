@@ -1,4 +1,6 @@
 # justPaint
-Another one JS Paint
+Автономный графический редактор для простого редактирования изображений
 
-Thanks for FontAwesome for free solid icons
+Спасибо FontAwesome за бесплатные иконки
+Спасибо kuckir за библиотеку CSPL
+Спасибо Mario Klingemann за библиотеку StackBlur
