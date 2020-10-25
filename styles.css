@@ -8,12 +8,6 @@ html {
   100% {transform: rotate(180deg);}
 }
 
-@keyframes stroke {
-  0% {stroke-dashoffset: 1000;}
-  50% {stroke-dashoffset: 550;transform: rotate(0deg);}
-  100% {stroke-dashoffset: 1000; transform: rotate(360deg);}
-}
-
 img {width: 1em; height: 1em;}
 
 a, select, input {
@@ -99,11 +93,49 @@ z-index: 10;
   cursor: pointer;
   font-size: 1.1em;
   position: relative;
+  min-width: 24px;
   width:24px; height: 24px;
   margin: 2px;
 }
 .button:active {transform: scale(0.85);}
 .btn:active {background: #00e3ff;}
+
+.button.sl {
+  position: relative;
+}
+.button.sl .button {
+  z-index: 2;
+  background: var(--ui-col);
+}
+.button.sl .slin  {
+  z-index: 1;
+}
+.button.sl:active {transform: none;}
+.button.sl:after {
+  content: "";
+  position:absolute;
+  bottom: 0; right: 0;
+  width:10px; height: 10px;
+  pointer-events: none;
+  background: linear-gradient(-45deg, grey 50%, transparent 50%);
+  z-index: 3;
+}
+.button.sl .slin {
+  top: 0;
+  left: 100%;
+  position: absolute;
+  background: var(--ui-col);
+  transform: translateX(-100%);
+  transition: transform 0.25s;
+  pointer-events: none;
+}
+.button.sl:hover .slin {
+  pointer-events: all;
+  transform: none;
+}
+.button.sl:hover:after {
+  background: none;
+}
 
 #colorButton {
   width: 32px;
@@ -114,11 +146,13 @@ z-index: 10;
 }
 
 #lineButton div {width: 100%; height: 4px; border-radius: 2px; background: currentColor; transform: rotate(45deg);}
-#rectButton div {width: 70%; height: 70%; border: 2px solid currentColor;}
-#arcButton div {width: 70%; height: 70%; border-radius: 50%; border: 2px solid currentColor;}
+#rectButton div, #rectselButton div {width: 70%; height: 70%; border: 2px solid currentColor;}
+#arcButton div, #arcselButton div {width: 70%; height: 70%; border-radius: 50%; border: 2px solid currentColor;}
 #textButton {font: 1.4em TimesNewRoman;}
+#arcselButton div, #rectselButton div {border-style: dashed;}
 
 canvas {cursor: none; position: absolute; left: 0; top: 0;}
+#selectionCanvas {mix-blend-mode: difference; z-index: 3; pointer-events: none;}
 .canvases {transition: transform 0.3s; min-width: 1200px;}
 
 .slider {
@@ -315,6 +349,7 @@ z-index: 6;
 .layers_container.visible {transform: none;}
 .image_info {
   flex-direction: column;
+  font-size: 18px;
   margin: 42px 12px 0px 12px;
   height: 50%;
   justify-content: flex-start;
@@ -390,7 +425,7 @@ cursor: pointer;
   justify-content: flex-start;
   position: relative;
   height: 100%;
-  padding: 60px 0px;
+  padding: 42px 0px;
   background: var(--ui-col);
 }
 
@@ -516,6 +551,7 @@ input[type="radio"] {
   background: #37ee34;
   border: 3px solid #079015;
   color: white;
+  z-index: 1;
 }
 #inst-settings .imgApply, #inst-settings .imgCancel {
   margin: 0px 5px;
@@ -535,8 +571,9 @@ input[type="radio"] {
   background:#ff4611;
   border: 3px solid #83004f;
   color:white;
+  z-index: 1;
 }
-.imgCancel {
+.imgCancel, .selButton {
   cursor: pointer;
   font-size: 1.4em;
   border-radius: 50%;
@@ -573,6 +610,20 @@ input[type="radio"] {
   display: none;
   z-index: 3;
   background-size: 100% 100%;
+}
+
+.selButton {
+  visibility: hidden;
+  position: absolute;
+  background: #348bee;
+  border: 3px solid #0037c2;
+  font-size: 0.75em;
+  cursor: pointer;
+  z-index: 1;
+  transform: translateY(-50%);
+}
+.selButton.visible {
+  visibility: visible;
 }
 
 #text_border {
@@ -612,6 +663,7 @@ input[type="radio"] {
   position: absolute;
   width: 100%; height: 100%;
   top: 0; left: 0;
+  will-change: transform, top, left;
 }
 .inin {position: relative; width: 100%; height: 100%;}
 
@@ -766,7 +818,7 @@ input[type="radio"] {
   z-index: -1;
 }
 
-#pasteImg {display: none;}
+#pasteImg {display: none; margin-top: 18px;}
 #pasteImg.visible {display: flex;}
 
 .borderedInput {
@@ -817,7 +869,7 @@ input[type="radio"] {
 #download_container  .quality_slider {
   position: relative;
   width: 90%;
-  margin: 15px 0px;
+  margin: 50px 0px 20px 0px;
 }
 #download_container  .quality_slider .tips {
   position: absolute;
@@ -864,7 +916,7 @@ input[type="radio"] {
   opacity: 0;
   margin: 0;
 }
-#download_container label, #blur_container label.checker {
+#download_container label.checker, #blur_container label.checker {
   padding: 2px 12px;
   border: 1px solid #348bee;
   margin: 0px 6px;
@@ -909,23 +961,6 @@ input[type="radio"] {
 }
 .overlay .link div svg {transform: rotate(-45deg);}
 .overlay .link input:checked + div {background: #348bee; color: var(--ui-col);}
-
-#loading {display: none; top: 0; left: 0; z-index: 10; opacity: 1; background: rgba(0,0,0,0.66);}
-#loading.visible {display: flex;}
-#loading.mrdgrd-icon div {background: #00e3ff;}
-#loading.mrdgrd-icon div div {background: #348bee;}
-#loading span {
-  position: absolute;
-  width: 150px; height: 150px;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-}
-#loading span .svg-circle {
-  stroke-dasharray: 1000;
-  stroke-dashoffset: 1000;
-  animation: stroke 2s linear infinite;
-  transform-origin: 75px 75px;
-}
 
 #blur_container {display: none;}
 #blur_container #blurPower {
@@ -996,5 +1031,10 @@ input[type="radio"] {
   margin: 10px 10px 10px 0px;
 }
 #curves_container input[name="curve"]:checked + label {background: currentColor;}
+
+#downloadName {
+  width: 280px;
+  margin-left: 10px;
+}
 
 #TEST {display: none;}

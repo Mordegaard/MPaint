@@ -28,14 +28,25 @@
   <div id="actions">
   <div id="instruments"><div class="instruments flexed">
     <div class="button flexed" id="cropButton" title="Обрезать"><img src="icons/crop-solid.svg"></div>
+    <div class="button sl flexed">
+      <div class="button flexed" id="rectselButton" title="Прямоугольное выделение"><div></div></div>
+      <div class="slin flexed el3">
+        <div class="button flexed inslin" id="lassoButton" title="Лассо"><img src="icons/lasso-solid.svg"></div>
+        <div class="button flexed inslin" id="arcselButton" title="Эллипсоидное выделение"><div></div></div>
+      </div>
+    </div>
     <div class="h-line"></div>
     <div class="button flexed" id="pipetteButton" title="Пипетка [P]"><img src="icons/eye-dropper-solid.svg"></div>
     <div class="button flexed" id="brushButton" title="Кисть [B]"><img src="icons/paint-brush-solid.svg"></div>
     <div class="button flexed" id="eraserButton" title="Ластик [E]"><img src="icons/eraser-solid.svg"></div>
     <div class="button flexed" id="fillButton" title="Заливка [G]"><img src="icons/fill-drip-solid.svg"></div>
-    <div class="button flexed" id="lineButton" title="Линия"><div></div></div>
-    <div class="button flexed" id="rectButton" title="Прямоугольник"><div></div></div>
-    <div class="button flexed" id="arcButton" title="Эллипс"><div></div></div>
+    <div class="button sl flexed">
+      <div class="button flexed" id="lineButton" title="Линия"><div></div></div>
+      <div class="slin flexed el3">
+        <div class="button flexed inslin" id="rectButton" title="Прямоугольник"><div></div></div>
+        <div class="button flexed inslin" id="arcButton" title="Эллипс"><div></div></div>
+      </div>
+    </div>
     <div class="button flexed" id="textButton" title="Текст">T</div>
     <div class="h-line"></div>
     <div class="button flexed" id="imagePropsButton" title="Настройки изображения"><img src="icons/sliders-h-solid.svg"></div>
@@ -59,7 +70,7 @@
           <div class="h-slider" id="temperatureSlider"><div class="text">Температура:</div><span></span><div class="bump"></div></div>
         </div>
         <div class="flexed">
-          <div class="btn flexed" id="openCurvesButton"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewbox="-24 -24 574 574" style="width: 1em;"><defs><path d="M523.5 11.5v512h-512v-512h512z" id="a"/><path d="M5.5 516.51s347.68-73.94 254.81-244.44C167.44 101.56 517.52 24.31 517.52 24.31" id="b"/><path d="M182 13.86v171H11v-171h171z" id="c"/><path d="M353 13.86v171H182v-171h171z" id="d"/><path d="M523.5 13.86v171h-171v-171h171z" id="e"/><path d="M523.5 184.86v171h-171v-171h171z" id="f"/><path d="M353 184.86v171H182v-171h171z" id="g"/><path d="M182.5 184.86v171h-171v-171h171z" id="h"/><path d="M182.5 355.86v171h-171v-171h171z" id="i"/><path d="M353 355.86v171H182v-171h171z" id="j"/><path d="M523.5 355.86v171h-171v-171h171z" id="k"/></defs><use xlink:href="#a" fill-opacity="0"/><use xlink:href="#a" fill-opacity="0" stroke="currentColor" stroke-width="48"/><use xlink:href="#b" fill-opacity="0"/><use xlink:href="#b" fill-opacity="0" stroke="currentColor" stroke-width="24"/><use xlink:href="#c" fill-opacity="0"/><use xlink:href="#c" fill-opacity="0" stroke="currentColor"/><use xlink:href="#d" fill-opacity="0"/><use xlink:href="#d" fill-opacity="0" stroke="currentColor"/><use xlink:href="#e" fill-opacity="0"/><use xlink:href="#e" fill-opacity="0" stroke="currentColor"/><use xlink:href="#f" fill-opacity="0"/><use xlink:href="#f" fill-opacity="0" stroke="currentColor"/><g><use xlink:href="#g" fill-opacity="0"/><use xlink:href="#g" fill-opacity="0" stroke="currentColor"/></g><g><use xlink:href="#h" fill-opacity="0"/><use xlink:href="#h" fill-opacity="0" stroke="currentColor"/></g><g><use xlink:href="#i" fill-opacity="0"/><use xlink:href="#i" fill-opacity="0" stroke="currentColor"/></g><g><use xlink:href="#j" fill-opacity="0"/><use xlink:href="#j" fill-opacity="0" stroke="currentColor"/></g><g><use xlink:href="#k" fill-opacity="0"/><use xlink:href="#k" fill-opacity="0" stroke="currentColor"/></g></svg></div>
+          <div class="btn flexed" id="openCurvesButton" title="Кривые"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewbox="-24 -24 574 574" style="width: 1em;"><defs><path d="M523.5 11.5v512h-512v-512h512z" id="a"/><path d="M5.5 516.51s347.68-73.94 254.81-244.44C167.44 101.56 517.52 24.31 517.52 24.31" id="b"/><path d="M182 13.86v171H11v-171h171z" id="c"/><path d="M353 13.86v171H182v-171h171z" id="d"/><path d="M523.5 13.86v171h-171v-171h171z" id="e"/><path d="M523.5 184.86v171h-171v-171h171z" id="f"/><path d="M353 184.86v171H182v-171h171z" id="g"/><path d="M182.5 184.86v171h-171v-171h171z" id="h"/><path d="M182.5 355.86v171h-171v-171h171z" id="i"/><path d="M353 355.86v171H182v-171h171z" id="j"/><path d="M523.5 355.86v171h-171v-171h171z" id="k"/></defs><use xlink:href="#a" fill-opacity="0"/><use xlink:href="#a" fill-opacity="0" stroke="currentColor" stroke-width="48"/><use xlink:href="#b" fill-opacity="0"/><use xlink:href="#b" fill-opacity="0" stroke="currentColor" stroke-width="24"/><use xlink:href="#c" fill-opacity="0"/><use xlink:href="#c" fill-opacity="0" stroke="currentColor"/><use xlink:href="#d" fill-opacity="0"/><use xlink:href="#d" fill-opacity="0" stroke="currentColor"/><use xlink:href="#e" fill-opacity="0"/><use xlink:href="#e" fill-opacity="0" stroke="currentColor"/><use xlink:href="#f" fill-opacity="0"/><use xlink:href="#f" fill-opacity="0" stroke="currentColor"/><g><use xlink:href="#g" fill-opacity="0"/><use xlink:href="#g" fill-opacity="0" stroke="currentColor"/></g><g><use xlink:href="#h" fill-opacity="0"/><use xlink:href="#h" fill-opacity="0" stroke="currentColor"/></g><g><use xlink:href="#i" fill-opacity="0"/><use xlink:href="#i" fill-opacity="0" stroke="currentColor"/></g><g><use xlink:href="#j" fill-opacity="0"/><use xlink:href="#j" fill-opacity="0" stroke="currentColor"/></g><g><use xlink:href="#k" fill-opacity="0"/><use xlink:href="#k" fill-opacity="0" stroke="currentColor"/></g></svg></div>
           <div class="btn flexed" id="applyProps" style="font-size: 0.9em;">Применить</div>
         </div>
         <div class="h-line"></div>
@@ -120,6 +131,8 @@
           <input id="addedText" type="text" value="Текст" />
         </div>
       </div>
+      <div id="cutSel" class="selButton flexed"><img src="icons/cut-solid.svg"></div>
+      <div id="copySel" class="selButton flexed"><img src="icons/clone-solid.svg"></div>
       </div></div>
       <div id="cursor"></div>
     </div>
@@ -242,6 +255,7 @@
         </div>
         <div id="download_container" class="flexed">
           <h3>Скачать изображение</h3>
+          <label style="width: 100%;">Название файла:<input id="downloadName" type="text" placeholder="mordegaard-paint"/></label>
           <div class="quality_slider flexed">
             <span class="tips left">Худшее<br />качество</span>
             <span class="tips center">Среднее<br />качество</span>
@@ -300,22 +314,6 @@
         <p>Отпустите, чтобы вставить изображение</p>
       </div>
     </div>
-    <div id="loading" class="flexed mrdgrd-icon">
-      <div class="flexed">
-        <div class="flexed">
-          <svg height="213.088" style="max-width: 80%" viewBox="0 0 379.494 213.088" width="379.494" xmlns="http://www.w3.org/2000/svg">
-            <defs><style> .cls-1 {fill: currentColor; stroke: none;} </style></defs>
-            <path class="cls-1" d="M191.152,160.761a45.563,45.563,0,0,0-14.021-16.024q-8.48-5.85-20.8-5.855a37.181,37.181,0,0,0-21.879,6.934q-9.865,6.933-14.175,21.416L66.968,348.424h62.554l19.413-71.8q4.623-17.563,8.012-30.969t5.855-25.73q2.463,5.243,5.085,10.785t6.163,12.172q3.538,6.63,7.857,14.945t9.861,18.8L219.5,328.7a55.171,55.171,0,0,0,8.166,12.171,36.306,36.306,0,0,0,8.474,6.934,26.858,26.858,0,0,0,9.244,3.235,75.825,75.825,0,0,0,21.571,0,26.931,26.931,0,0,0,9.244-3.235,36.408,36.408,0,0,0,8.474-6.934,55.346,55.346,0,0,0,8.166-12.171l27.734-51.77q10.471-20.026,16.948-33.126t11.71-23.881q2.462,12.639,5.854,25.884t8.32,30.815l19.414,71.8H446.3L394.222,167.232q-4.318-14.481-14.02-21.416a36.5,36.5,0,0,0-21.725-6.934q-12.639,0-21.108,6.009a47.814,47.814,0,0,0-14.021,15.87l-32.972,58.548q-6.781,12.018-11.864,20.955t-8.936,16.177q-3.857,7.245-6.779,12.943T257.4,280.631q-2.773-5.547-5.7-11.4t-6.779-12.943q-3.857-7.084-8.936-16.177T224.124,219ZM224.091,204Q191.182,147,257,147t32.909,57Q257,261,224.091,204Z" data-name="MRDGRD1" id="MRDGRD1" transform="translate(-66.894 -138.8)"></path>
-          </svg>
-        </div>
-      </div>
-      <span>
-        <svg height="150" width="150">
-  	    <circle class="svg-circle" cx="75" cy="75" r="71" stroke="#348bee" stroke-width="4" fill-opacity="0" />
-        </svg>
-      </span>
-    </div>
-
 
   </div>
 
