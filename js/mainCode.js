@@ -6,36 +6,37 @@ function getRand(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
 }
 
-class InImage {
-  constructor() {
-    this.Top = 0; this.Left = 0; this.Width = 0; this.Height = 0; this.Angle = 0; this.Prop = 1;
-    this.textSize = 18; this.textFont = 0; this.textStroke = false; this.textBold = false; this.textItalic = false;
-  }
+var InImg = {
+  top: 0, left: 0, width: 0, height: 0, angle: 0, prop: 1,
+  textSize: 30, textFont: 0, textStroke: false, textBold: false, textItalic: false,
 }
+var Selection = {
+  top: 0, left: 0, width: 0, height: 0, points: [], creating: 0, creatingType: 0, btns: false,
+}
+var select, sel;
 
-var canvas = document.getElementById('main_canvas');
-var instBlock = document.getElementById("inst-settings");
+var canvas = getNode('main_canvas');
+var instBlock = getNode("inst-settings");
 var ctx = canvas.getContext('2d');
-var bg = document.getElementById('bg_canvas').getContext('2d');
-var dl = document.getElementById('dl_canvas').getContext('2d');
-var un2 = document.getElementById('undo_canvas2');
-var un1 = document.getElementById('undo_canvas1');
+var bg = getNode('bg_canvas').getContext('2d');
+var dl = getNode('dl_canvas').getContext('2d');
+var un2 = getNode('undo_canvas2');
+var un1 = getNode('undo_canvas1');
 var undo = un1.getContext('2d');
 var lastAct = false, adding = 0, correctingBool = false;
 var isMoving = 0, isDrawing = 0, isSliding = 0;
 var instrument = 0;
 var x1, x2, y1, y2, canvX=0, canvY=0;
 var shift = false, ctrl = false, reservedBool = false;
-let InImg = new InImage();
-var addImg = new Image(); addImg.setAttribute("crossorigin", "anonymous");
+var addImg = new Image(), bgImg = new Image(); addImg.setAttribute("crossorigin", "anonymous");
 var cBorder=1, saved_inst = "", scale = 1, scale1 = 1, scale2 = 0;; brushCoords = [[],[]];
-var overlay = [document.getElementById("addImg_container"), document.getElementById("editCanvas_container"), document.getElementById("filters_container"), document.getElementById("download_container"), document.getElementById("blur_container"), document.getElementById("histogram_container"), document.getElementById("curves_container")];
+var overlay = [getNode("addImg_container"), getNode("editCanvas_container"), getNode("filters_container"), getNode("download_container"), getNode("blur_container"), getNode("histogram_container"), getNode("curves_container")];
 main_x = canvas.width; main_y = canvas.height;
 var colCorrect = [0,0,0,0,0], tempData;
 var circle = null;
 var cx = [0,256], cy= [256,0], ck = [], cxr = [0,256], cyr = [256,0], ckr = [], cxg = [0,256], cyg = [256,0], ckg = [], cxb = [0,256], cyb = [256,0], ckb = [];
 var valsCW = new Uint8ClampedArray(256), valsCR = new Uint8ClampedArray(256), valsCG = [], valsCB = new Uint8ClampedArray(256);
-size = 2;
+size = 2; ctxX=0; ctxY=0;
 hue = 0; saturation = 100; value = 100; transparency = 1; tr1 = transparency; tr11 = transparency; tr2 = tr1;
 red1 = 255; green1 = 0; blue1 = 0;
 red2 = 0; green2 = 0; blue2 = 0;
@@ -44,6 +45,10 @@ selectedColor = '#ff0000';
 selectedColor2 = '#000000';
 $('#l1').css('background','#348bee');
 bg.fillStyle = bgColor; bg.fillRect(0,0,main_x,main_y);
+
+function getNode(node) {
+  return document.getElementById(node);
+}
 
 function getAngle(x1,y1,x2,y2) {
   var a = [x2-x1, y2-y1]; var b = [10, 0];
@@ -66,8 +71,20 @@ function interpolateArr(arr, step) {
 }
 
 function changeInst(block) {
+  Selection.creatingType = 0;
   instrument = 0; instBlock.innerHTML = "";
-  $('.button').css({'box-shadow':'','color':''}); $(block).css({'box-shadow':'0px 0px 0px 2px','color':'#348bee'});
+  Array.prototype.forEach.call(document.getElementsByClassName("selButton"), (block) => {
+    block.classList.remove("visible");
+  });
+  $('.button').css({'background':''}); $(block).css({'background':'#348bee'});
+  if (block.classList.contains("inslin")) {
+    var par = block.parentElement;
+    var bl = block.parentElement.parentElement.children[0];
+    par.parentElement.prepend(block);
+    par.appendChild(bl);
+    bl.classList.add("inslin");
+    block.classList.remove("inslin");
+  }
 }
 
 function sliding() {
@@ -77,7 +94,7 @@ if (x > width ) x = width;
 if (x < 1) x = 1;
 $('#size_slider .slider_button').css('left', x-10);
 size = Math.round(x);
-document.getElementById("brush-size").children[0].innerText = size + "px";
+getNode("brush-size").children[0].innerText = size + "px";
 $('.slider_line div').css('width', size + 'px');
 $('#cursor').css({'width':size+'px', 'height':size+'px'});
 }
@@ -89,7 +106,7 @@ function drawing(context, event, x, y) {
   if (Size < 5) Size -= Math.trunc(Size/2);
   context.save();
   if (instrument == 2) context.globalCompositeOperation = 'destination-out';
-  else if (document.getElementById("penType").selectedIndex) {brushCoords[0].push(x1/scale); brushCoords[1].push(y1/scale);}
+  else if (getNode("penType").selectedIndex) {brushCoords[0].push(x1/scale); brushCoords[1].push(y1/scale);}
   context.beginPath();
   context.lineWidth = 0;
   context.fillStyle = selectedColor;
@@ -119,7 +136,7 @@ function pipette(canvas) {
   }
   var color = 'rgb(' + p[0] + ',' + p[1] + ',' + p[2] + ')';
   selectedColor = color;
-  document.getElementById("pagemax").style.setProperty("--main-col", color);
+  getNode("pagemax").style.setProperty("--main-col", color);
   var res = rgb_to_hsv(p[0],p[1],p[2]);
   hue = res[0]; saturation = res[1]*100; value = res[2]*100; tr1 = 1;
   red1=p[0]; green1=p[1]; blue1=p[2];
@@ -128,8 +145,8 @@ function pipette(canvas) {
 }
 
 function drawLine(context) {
-  x2 = event.pageX - $('#main_canvas').offset().left;
-  y2 = event.pageY - $('#main_canvas').offset().top;
+  x2 = (event.pageX - $('#main_canvas').offset().left)/scale;
+  y2 = (event.pageY - $('#main_canvas').offset().top)/scale;
   var angle = getAngle(x1,y1,x2,y2);
   if (shift) {
     if (Math.abs(Math.cos(angle)) > 0.707) {
@@ -141,16 +158,16 @@ function drawLine(context) {
     }
   }
   context.clearRect(0,0,main_x,main_y);
-  if (document.getElementById("lineType").selectedIndex == 0) {
+  if (getNode("lineType").selectedIndex == 0) {
     context.lineCap = "butt";
   }
-  else if (document.getElementById("lineType").selectedIndex == 1) {
+  else if (getNode("lineType").selectedIndex == 1) {
     context.lineCap = "round";
   }
-  else if (document.getElementById("lineType").selectedIndex == 2) {
+  else if (getNode("lineType").selectedIndex == 2) {
     context.lineCap = "round";
     context.save();
-    context.translate(x2/scale,y2/scale);
+    context.translate(x2,y2);
     context.rotate(angle);
     context.beginPath();
     context.moveTo(size,0);
@@ -166,126 +183,126 @@ function drawLine(context) {
   context.beginPath();
   context.strokeStyle = 'rgb('+red1+','+green1+','+blue1+','+tr1+')';
   context.lineWidth = size;
-  context.moveTo(x1/scale,y1/scale);
-  context.lineTo(x2/scale,y2/scale);
+  context.moveTo(x1,y1);
+  context.lineTo(x2,y2);
   context.stroke();
   context.closePath();
 }
 
 function drawRect(context) {
-  x2 = event.pageX - $('#main_canvas').offset().left;
-  y2 = event.pageY - $('#main_canvas').offset().top;
+  x2 = (event.pageX - $('#main_canvas').offset().left)/scale;
+  y2 = (event.pageY - $('#main_canvas').offset().top)/scale;
   var xt = x1, yt = y1, s;
   context.clearRect(0,0,main_x,main_y);
   context.beginPath();
-  if (document.getElementById("fillShape").checked) context.fillStyle = 'rgb('+red1+','+green1+','+blue1+','+tr1+')';
+  if (getNode("fillShape").checked) context.fillStyle = 'rgb('+red1+','+green1+','+blue1+','+tr1+')';
   else context.fillStyle = "transparent";
   context.strokeStyle = 'rgb('+red2+','+green2+','+blue2+','+tr11+')';
-  if (document.getElementById("strokeShape").checked) {s = size;} else {s=0;}
+  if (getNode("strokeShape").checked) {s = size;} else {s=0;}
   context.lineWidth = s;
-  var Y = (y2-yt)/scale;
-  if (shift) {Y = (x2-xt)/scale; if (x2 < x1) {xt = x2; x2 = x1; Y = (xt-x2)/scale;}}
-  context.fillRect(xt/scale,yt/scale, (x2-xt)/scale, Y);
-  if (document.getElementById("strokeShape").checked) {context.strokeRect(xt/scale,yt/scale, (x2-xt)/scale, Y);}
+  var Y = (y2-yt);
+  if (shift) {Y = (x2-xt); if (x2 < x1) {xt = x2; x2 = x1; Y = (xt-x2);}}
+  context.fillRect(xt, yt, (x2-xt), Y);
+  if (getNode("strokeShape").checked) {context.strokeRect(xt ,yt, (x2-xt), Y);}
   context.closePath();
 }
 
 function drawArc(context) {
-  x2 = event.pageX - $('#main_canvas').offset().left;
-  y2 = event.pageY - $('#main_canvas').offset().top;
+  x2 = (event.pageX - $('#main_canvas').offset().left)/scale;
+  y2 = (event.pageY - $('#main_canvas').offset().top)/scale;
   var sqX = (x2 - x1) * (x2 - x1);
   var sqY = (y2 - y1) * (y2 - y1);
   var s=0;
-  if (document.getElementById("strokeShape").checked) {s = size;}
+  if (getNode("strokeShape").checked) {s = size;}
   var rad =  Math.sqrt(sqX + sqY) - s / 2;
   context.clearRect(0,0,main_x,main_y);
   context.beginPath();
-  if (document.getElementById("fillShape").checked) context.fillStyle = 'rgb('+red1+','+green1+','+blue1+','+tr1+')';
+  if (getNode("fillShape").checked) context.fillStyle = 'rgb('+red1+','+green1+','+blue1+','+tr1+')';
   else context.fillStyle = "transparent";
   context.strokeStyle = 'rgb('+red2+','+green2+','+blue2+','+tr11+')';
   context.lineWidth = s;
-  if (shift) context.arc(x1/scale,y1/scale, rad/scale, 0, Math.PI * 2); else
-    context.ellipse(x1/scale, y1/scale, Math.abs(x2-x1)/scale, Math.abs(y2-y1)/scale, 0, 0, Math.PI * 2);
+  if (shift) context.arc(x1, y1, rad, 0, Math.PI * 2); else
+    context.ellipse(x1, y1, Math.abs(x2-x1), Math.abs(y2-y1), 0, 0, Math.PI * 2);
   context.fill();
   context.closePath();
   context.beginPath();
-  if (document.getElementById("strokeShape").checked) {
-    if (shift) context.arc(x1/scale,y1/scale, rad/scale+s/2, 0, Math.PI * 2); else
-      context.ellipse(x1/scale, y1/scale, Math.abs(x2-x1)/scale+s/2, Math.abs(y2-y1)/scale+s/2, 0, 0, Math.PI * 2);
+  if (getNode("strokeShape").checked) {
+    if (shift) context.arc(x1, y1, rad+s/2, 0, Math.PI * 2);
+    else context.ellipse(x1, y1, Math.abs(x2-x1)+s/2, Math.abs(y2-y1)+s/2, 0, 0, Math.PI * 2);
     context.stroke();}
   context.closePath();
 }
 
 function moveImg(event) {
   if (!ctrl) {
-    var x2 = event.pageX - $('#main_canvas').offset().left, y2 = event.pageY - $('#main_canvas').offset().top;
-    var width = (x2 - x1)/scale, height = (y2 - y1)/scale;
+    var x2 = (event.pageX - $('#main_canvas').offset().left)/scale, y2 = (event.pageY - $('#main_canvas').offset().top)/scale;
+    var width = x2 - x1, height = y2 - y1;
     if (adding == 1) {
-      document.getElementById("image_border").style.top = (InImg.Top + height) + "px";
-      document.getElementById("image_border").style.left = (InImg.Left + width) + "px";
-      document.getElementById("addedImage").style.top = (InImg.Top + height) + "px";
-      document.getElementById("addedImage").style.left = (InImg.Left + width) + "px";
+      getNode("image_border").style.top = (InImg.top + height) + "px";
+      getNode("image_border").style.left = (InImg.left + width) + "px";
+      getNode("addedImage").style.top = (InImg.top + height) + "px";
+      getNode("addedImage").style.left = (InImg.left + width) + "px";
     } else if (adding == 2) {
-      document.getElementById("text_border").style.top = (InImg.Top + height) + "px";
-      document.getElementById("text_border").style.left = (InImg.Left + width) + "px";
+      getNode("text_border").style.top = (InImg.top + height) + "px";
+      getNode("text_border").style.left = (InImg.left + width) + "px";
     }
     else if (adding == 3) {
-      document.getElementById("image_border").style.top = (InImg.Top + height) + "px";
-      document.getElementById("image_border").style.left = (InImg.Left + width) + "px";
+      getNode("image_border").style.top = (InImg.top + height) + "px";
+      getNode("image_border").style.left = (InImg.left + width) + "px";
     }
   }
 }
 
 function imgResize(event, wR, hR) {
-  var x2 = event.pageX - $('#main_canvas').offset().left, y2 = event.pageY - $('#main_canvas').offset().top;
-  var width = (x2 - x1)/scale;
-  if (!shift) {var height = (y2 - y1)/scale;}
+  var x2 = (event.pageX - $('#main_canvas').offset().left)/scale, y2 = (event.pageY - $('#main_canvas').offset().top)/scale;
+  var width = x2 - x1;
+  if (!shift) {var height = y2 - y1;}
   else {
-    if (wR && hR || !wR && !hR) {var height = width * InImg.Prop;}
-    else {var height = -width * InImg.Prop;}
+    if (wR && hR || !wR && !hR) {var height = width * InImg.prop;}
+    else {var height = -width * InImg.prop;}
   }
-  var W = InImg.Width + width; var H = InImg.Height + height;
+  var W = InImg.width + width; var H = InImg.height + height;
   if (wR) {
-    W = InImg.Width - width;
-    document.getElementById("image_border").style.left = (InImg.Left + width) + "px";
-    document.getElementById("addedImage").style.left = (InImg.Left + width) + "px";
+    W = InImg.width - width;
+    getNode("image_border").style.left = (InImg.left + width) + "px";
+    getNode("addedImage").style.left = (InImg.left + width) + "px";
   }
   if (hR) {
-    H = InImg.Height - height;
-    document.getElementById("image_border").style.top = (InImg.Top + height) + "px";
-    document.getElementById("addedImage").style.top = (InImg.Top + height) + "px";
+    H = InImg.height - height;
+    getNode("image_border").style.top = (InImg.top + height) + "px";
+    getNode("addedImage").style.top = (InImg.top + height) + "px";
   }
-  document.getElementById("image_border").style.width = W + "px";
-  document.getElementById("image_border").style.height = H + "px";
-  document.getElementById("addedImage").style.width = (W+1) + "px";
-  document.getElementById("addedImage").style.height = (H+1) + "px";
+  getNode("image_border").style.width = W + "px";
+  getNode("image_border").style.height = H + "px";
+  getNode("addedImage").style.width = (W+1) + "px";
+  getNode("addedImage").style.height = (H+1) + "px";
   if (adding == 3) {
-    document.getElementById("newRes").innerText = (document.getElementById("image_border").offsetWidth-2) + 'x' + (document.getElementById("image_border").offsetHeight-2);
+    getNode("newRes").innerText = (getNode("image_border").offsetWidth-2) + 'x' + (getNode("image_border").offsetHeight-2);
   }
 }
 
 function imgRotate(event) {
-  var y2 = event.pageY - $('#main_canvas').offset().top;
-  var h = (y2 - y1) / 2 / scale;
-  InImg.Angle = h;
+  var y2 = (event.pageY - $('#main_canvas').offset().top)/scale;
+  var h = (y2 - y1) / 2;
+  InImg.angle = h;
   if (adding == 1) {
-    document.getElementById("full_img_border").style.transform = 'rotate('+h+'deg)';
-    document.getElementById("addedImage").style.transform = 'rotate('+h+'deg)';
+    getNode("full_img_border").style.transform = 'rotate('+h+'deg)';
+    getNode("addedImage").style.transform = 'rotate('+h+'deg)';
   } else if (adding == 2) {
-    document.getElementById("textMove").style.transform = 'rotate('+h+'deg)';
+    getNode("textMove").style.transform = 'rotate('+h+'deg)';
   }
 }
 
 function swapColors() {
   var temp = selectedColor;
-  var tempB = getComputedStyle(document.getElementById("pagemax")).getPropertyValue("--main-col");
+  var tempB = getComputedStyle(getNode("pagemax")).getPropertyValue("--main-col");
   var tempC = $("#updateBrush").css('color');
   var tempT = tr1;
   var tempRGB = [red1, green1, blue1];
   selectedColor = selectedColor2;
   selectedColor2 = temp;
-  document.getElementById("pagemax").style.setProperty("--main-col", getComputedStyle(document.getElementById("pagemax")).getPropertyValue("--sec-col"));
-  document.getElementById("pagemax").style.setProperty("--sec-col", tempB);
+  getNode("pagemax").style.setProperty("--main-col", getComputedStyle(getNode("pagemax")).getPropertyValue("--sec-col"));
+  getNode("pagemax").style.setProperty("--sec-col", tempB);
   $("#updateBrush").css('color', $("#updateBrush2").css('color') );
   $("#colorButton").css('color', $("#updateBrush2").css('color') );
   $("#updateBrush2").css('color', tempC);
@@ -313,7 +330,7 @@ function updateInputWidth(block) {
 
 function updateZoom(m) {
   document.getElementsByClassName("in")[0].style.transform = "scale("+scale+")";
-  document.getElementById("zoom-info").innerText = Math.round(scale*100) + '%';
+  getNode("zoom-info").innerText = Math.round(scale*100) + '%';
   var B = document.getElementsByClassName("canvases")[0];
   var b = B.getElementsByClassName("imgBorder");
   for (var i = 0; i < b.length; i++) b[i].style.transform = "scale("+(1/scale)+")";
@@ -324,20 +341,20 @@ function updateZoom(m) {
   b = B.getElementsByClassName("imgRotate");
   for (var i = 0; i < b.length; i++) b[i].style.transform = "translateY(-50%) scale("+(1/scale)+")";
   cBorder = 1/scale;
-  document.getElementById("cursor").style.transform = "scale("+scale+")";
-  document.getElementById("cursor").style.borderWidth = cBorder+'px';
-  document.getElementById("bg_canvas").style.backgroundSize = 1/scale + "%";
+  getNode("cursor").style.transform = "scale("+scale+")";
+  getNode("cursor").style.borderWidth = cBorder+'px';
+  getNode("bg_canvas").style.backgroundSize = 1/scale + "%";
 }
 
 function updateCursor(a) {
-  var cursor = document.getElementById("cursor");
+  var cursor = getNode("cursor");
   if (a == 1 || a == 2) {
     cursor.style.display = "";
     un1.style.cursor = "none";
-  } else if (a >2 && a < 8) {
+  } else if (a >2 && a < 11) {
     cursor.style.display = "none";
     un1.style.cursor = "crosshair";
-  } else if (a == 8) {
+  } else if (a == -2) {
     cursor.style.display = "none";
     un1.style.cursor = "move";
   } else if (a==-1) {
@@ -355,13 +372,25 @@ function moveCanvas(event) {
 
 function fill() {
   var x2 = Math.round((event.pageX - $('#main_canvas').offset().left)/scale), y2 = Math.round((event.pageY - $('#main_canvas').offset().top)/scale);
-  var data = ctx.getImageData(0,0,main_x,main_y);
-  var depth = document.getElementById("fillWeight").value / 2;
+  var wi = main_x, he = main_y;
+  if (Selection.points == false)
+    var data = ctx.getImageData(0,0,main_x,main_y);
+  else {
+    var c = document.createElement('canvas');
+    c.width = Selection.width;
+    c.height = Selection.height;
+    c.getContext('2d').drawImage(canvas, -Selection.left, -Selection.top);
+    var data = c.getContext('2d').getImageData(0,0,c.width,c.height);
+    x2 = Math.floor(x2 - Selection.left); y2 = Math.floor(y2 - Selection.top);
+    wi = c.width; he = c.height;
+  }
+  var depth = getNode("fillWeight").value / 2;
   if (depth < 0) depth = 0; else if (depth > 255) depth = 128;
   var coords = [];
   var cI = 0;
+
   function getCol(x,y) {
-    return [data.data[4*(main_x*y+x)+0], data.data[4*(main_x*y+x)+1], data.data[4*(main_x*y+x)+2], data.data[4*(main_x*y+x)+3]];
+    return [data.data[4*(wi*y+x)+0], data.data[4*(wi*y+x)+1], data.data[4*(wi*y+x)+2], data.data[4*(wi*y+x)+3]];
   }
   Array.prototype.compareCols = function (array) {
     var d = depth;
@@ -379,22 +408,22 @@ function fill() {
     var left=false,right=false;
     var Y = y, X = x;
     while (getCol(X,Y).compareCols(matchColor) && Y >= 0) {
-        data.data[4*(main_x*Y+X)+0] = red1;
-        data.data[4*(main_x*Y+X)+1] = green1;
-        data.data[4*(main_x*Y+X)+2] = blue1;
-        data.data[4*(main_x*Y+X)+3] = tr1*255;
+        data.data[4*(wi*Y+X)+0] = red1;
+        data.data[4*(wi*Y+X)+1] = green1;
+        data.data[4*(wi*Y+X)+2] = blue1;
+        data.data[4*(wi*Y+X)+3] = tr1*255;
         if (getCol(X-1,Y).compareCols(matchColor) && X >= 0) {if(!left) {left = true; coords.push([X-1,Y]); cI++;} } else {left = false;}
-        if (getCol(X+1,Y).compareCols(matchColor) && X < main_x) {if(!right) {right = true; coords.push([X+1,Y]); cI++;} } else {right = false;}
+        if (getCol(X+1,Y).compareCols(matchColor) && X < wi) {if(!right) {right = true; coords.push([X+1,Y]); cI++;} } else {right = false;}
       Y--;
     }
     Y = y+1;
-    while (getCol(X,Y).compareCols(matchColor) && Y < main_y) {
-        data.data[4*(main_x*Y+X)+0] = red1;
-        data.data[4*(main_x*Y+X)+1] = green1;
-        data.data[4*(main_x*Y+X)+2] = blue1;
-        data.data[4*(main_x*Y+X)+3] = tr1*255;
+    while (getCol(X,Y).compareCols(matchColor) && Y < he) {
+        data.data[4*(wi*Y+X)+0] = red1;
+        data.data[4*(wi*Y+X)+1] = green1;
+        data.data[4*(wi*Y+X)+2] = blue1;
+        data.data[4*(wi*Y+X)+3] = tr1*255;
         if (getCol(X-1,Y).compareCols(matchColor) && X >= 0) { if(!left) {left = true; coords.push([X-1,Y]); cI++;} } else {left = false;}
-        if (getCol(X+1,Y).compareCols(matchColor) && X < main_x) { if(!right) {right = true; coords.push([X+1,Y]); cI++;} } else {right = false;}
+        if (getCol(X+1,Y).compareCols(matchColor) && X < wi) { if(!right) {right = true; coords.push([X+1,Y]); cI++;} } else {right = false;}
       Y++;
     }
   }
@@ -402,22 +431,26 @@ function fill() {
   for (var i=0; i<cI; i++) {
     checkVert(coords[i][0],coords[i][1]);
   }
-  ctx.putImageData(data,0,0);
+  if (Selection.points == false) ctx.putImageData(data,0,0);
+  else {
+    c.getContext('2d').putImageData(data,0,0);
+    ctx.drawImage(c, Selection.left, Selection.top);
+  }
 }
 
 function addImage(url) {
   if (!adding) {
       document.getElementsByClassName("imgRotate")[0].style.display = "";
-      document.getElementById("grid").style.display = "none";
+      getNode("grid").style.display = "none";
       adding = 1;
-      var nonRes = document.getElementById("imagePropsButton");
+      var nonRes = getNode("imagePropsButton");
       resetInstrument(); colorInstrument(nonRes);
       instBlock.innerHTML = '<div class="imgApply flexed"><span></span></div><div class="imgCancel flexed">×</div>';
-      InImg.Top = 0;
-      InImg.Left = 0;
-      InImg.Angle = 0;
+      InImg.top = 0;
+      InImg.left = 0;
+      InImg.angle = 0;
       document.getElementsByClassName("overlay_container")[0].classList.remove("visible");
-      document.getElementById("full_img_border").style.transform = '';
+      getNode("full_img_border").style.transform = '';
       var w = addImg.width; var h = addImg.height;
       if (h > main_y) {
         w *= main_y / h; h = main_y;
@@ -425,8 +458,8 @@ function addImage(url) {
       if (w > main_x) {
         h *= main_x/w; w  =main_x;
       }
-      InImg.Width = w; InImg.Height = h;
-      InImg.Prop = h / w;
+      InImg.width = w; InImg.height = h;
+      InImg.prop = h / w;
       $("#image_border").css({
         "display":"block",
         "width":w+"px",
@@ -500,23 +533,24 @@ function toggleVisible(block) {
 }
 
 function resetInstrument() {
+  Selection.creatingType = 0;
   updateCursor(-1);
   instrument = -1;
-  $('.button').css({'box-shadow':'','color':''});
+  $('.button').css({'background':''});
   if (!adding) instBlock.innerHTML = '';
 }
 
 function colorInstrument(block1=false, block2=false, block3=false) {
-  var blocks = document.getElementById("instruments").getElementsByClassName("button");
+  var blocks = getNode("instruments").getElementsByClassName("button");
   for (var i=0; i<blocks.length; i++) blocks[i].style.color = "grey";
   if (block1) {block1.style.color = "";} if (block2) {block2.style.color = "";} if (block3) {block3.style.color = "";}
 }
 
 function colorCorrection(mode) {
-  if (mode == 0) {var block = document.getElementById('contrastSlider'); var valtext = "Контраст: ";} else
-  if (mode == 1) {var block = document.getElementById('saturationSlider'); var valtext = "Насыщенность: ";} else
-  if (mode == 2) {var block = document.getElementById('brightnessSlider'); var valtext = "Яркость: ";} else
-  if (mode == 3) {var block = document.getElementById('temperatureSlider'); var valtext = "Температура: ";}
+  if (mode == 0) {var block = getNode('contrastSlider'); var valtext = "Контраст: ";} else
+  if (mode == 1) {var block = getNode('saturationSlider'); var valtext = "Насыщенность: ";} else
+  if (mode == 2) {var block = getNode('brightnessSlider'); var valtext = "Яркость: ";} else
+  if (mode == 3) {var block = getNode('temperatureSlider'); var valtext = "Температура: ";}
   var x = event.pageX - $(block).offset().left;
   if (x < 0) x = 0; else if (x > 200) x = 200; else if (x > 95 && x < 105) x = 100;
   var value = x - 100;
@@ -531,7 +565,7 @@ function colorCorrection(mode) {
                   if (colCorrect[3] > 0) red = 225; else
                   if (colCorrect[3] < 0) blue = 225;
                   var T = Math.abs(colCorrect[3])/1500;
-                  document.getElementById("tempFilter").style.background = "rgba("+red+",50,"+blue+","+T+")";
+                  getNode("tempFilter").style.background = "rgba("+red+",50,"+blue+","+T+")";
                  }
   canvas.style.filter = "brightness("+(100+colCorrect[2])+"%) contrast("+(100+colCorrect[0])+"%) saturate("+(100+colCorrect[1])+"%)";
 }
@@ -584,8 +618,8 @@ function applyColorCorrection() {
     text = text.slice(0, text.indexOf(":")+1);
     blocks[i].getElementsByClassName("text")[0].innerText = text;
   }
-  document.getElementById("tempFilter").style.background = "";
-  var button = document.getElementById("applyProps");
+  getNode("tempFilter").style.background = "";
+  var button = getNode("applyProps");
   button.innerText = "Настройки применены";
   button.style.color =  "green"; button.style.borderColor = "green"; button.style.background = "transparent";
   setTimeout(function(){button.style.color =  ""; button.style.borderColor = ""; button.style.background = ""; button.innerText = "Применить";}, 1500);
@@ -598,7 +632,7 @@ function applyFilter(context, mode, power=undefined) {
   var c = context.getContext('2d');
   if (context == canvas) {
     ctx.globalAlpha = tr1; un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
-  } else if (context == document.getElementById("filterPreview")) c.putImageData(tempData,0,0);
+  } else if (context == getNode("filterPreview")) c.putImageData(tempData,0,0);
   var data = c.getImageData(0,0,context.width,context.height);
   var d = data.data;
   if (mode == 1) {
@@ -733,8 +767,8 @@ function applyFilter(context, mode, power=undefined) {
 }
 
 function updateCanvasPreview() {
-  var w = parseInt(document.getElementById("canvasWidth").value), h = parseInt(document.getElementById("canvasHeight").value), W, H;
-  var block = document.getElementById("canvasPreview");
+  var w = parseInt(getNode("canvasWidth").value), h = parseInt(getNode("canvasHeight").value), W, H;
+  var block = getNode("canvasPreview");
   if (w > h) {W=200; H=200*(h/w);} else if (w < h) {H=200; W=200*(w/h);} else {H=200; W=200;}
   block.style.width = W+'px'; block.style.height = H+'px';
   var x = w, y = h;
@@ -742,7 +776,7 @@ function updateCanvasPreview() {
     x > y ? x %= y : y %= x;
   }
   x += y;
-  document.getElementById("canvasAspectRatio").innerText = (w/x)+':'+(h/x);
+  getNode("canvasAspectRatio").innerText = (w/x)+':'+(h/x);
 }
 
 function updateCanvas(w, h) {
@@ -762,8 +796,9 @@ function updateCanvas(w, h) {
   canvX = 0; canvY = 0;
   document.getElementsByClassName("in")[0].style.top = canvY + 'px';
   document.getElementsByClassName("in")[0].style.left = canvX + 'px';
-  document.getElementById("infoWidth").innerText = "Ширина: " + main_x;
-  document.getElementById("infoHeight").innerText = "Высота: " + main_y;
+  getNode("infoWidth").innerText = "Ширина: " + main_x;
+  getNode("infoHeight").innerText = "Высота: " + main_y;
+  InImg.textSize = Math.round(main_x * main_y / 24000);
 }
 
 function applyBlur(context, mode, weight) {
@@ -859,25 +894,25 @@ function applyBlur(context, mode, weight) {
 }
 
 ;['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-  document.getElementById("pagemax").addEventListener(eventName, preventDefaults, false)
+  getNode("pagemax").addEventListener(eventName, preventDefaults, false)
 })
 function preventDefaults (e) {
   e.preventDefault()
   e.stopPropagation()
 }
 
-document.getElementById("actions").addEventListener('dragenter', function(e){
-  document.getElementById("actions").classList.add("draggedFile");
+getNode("actions").addEventListener('dragenter', function(e){
+  getNode("actions").classList.add("draggedFile");
 }, false);
-document.getElementById("dropImg").addEventListener('dragover', function(e){
+getNode("dropImg").addEventListener('dragover', function(e){
 }, false);
 ;['dragleave', 'drop'].forEach(eventName => {
-  document.getElementById("dropImg").addEventListener(eventName, function(e){
-    document.getElementById("actions").classList.remove("draggedFile");
+  getNode("dropImg").addEventListener(eventName, function(e){
+    getNode("actions").classList.remove("draggedFile");
   }, false)
 })
 
-document.getElementById("pagemax").addEventListener('drop', function(e){
+getNode("pagemax").addEventListener('drop', function(e){
   if (!adding) {
     var tried = false;
     var items = e.dataTransfer.items;
@@ -940,7 +975,7 @@ function generateHistogram() {
     canvx.stroke();
     canvx.closePath();
   }
-  var canv = document.getElementById("histogramPreview");
+  var canv = getNode("histogramPreview");
   var canvx = canv.getContext('2d');
   canv.width = 512; canv.height = 512;
   canvx.translate(0,canv.height);
@@ -961,18 +996,18 @@ function generateHistogram() {
     valuesB[i] *= normal;
     valuesW[i] *= normal;
   }
-  document.getElementById("hist1").innerText = Math.floor(128 / normal) + " -";
-  document.getElementById("hist2").innerText = Math.floor(256 / normal) + " -";
-  document.getElementById("hist3").innerText = Math.floor(384 / normal) + " -";
+  getNode("hist1").innerText = Math.floor(128 / normal) + " -";
+  getNode("hist2").innerText = Math.floor(256 / normal) + " -";
+  getNode("hist3").innerText = Math.floor(384 / normal) + " -";
   draw(valuesR, "red"); draw(valuesG, "chartreuse"); draw(valuesB, "blue"); //draw(valuesW, "white");
 }
 
 function updateCurvesVals(bl = null) {
   if (!bl) {
-    if (document.getElementById('curveWhite').checked) {var X = cx, Y = cy, k = ck, c = "white"; var vals = valsCW;}
-    else if (document.getElementById('curveRed').checked) {var X = cxr, Y = cyr, k = ckr, c = "red"; var vals = valsCR;}
-      else if (document.getElementById('curveGreen').checked) {var X = cxg, Y = cyg, k = ckg, c = "green"; var vals = valsCG;}
-        else if (document.getElementById('curveBlue').checked) {var X = cxb, Y = cyb, k = ckb, c = "blue"; var vals = valsCB;}
+    if (getNode('curveWhite').checked) {var X = cx, Y = cy, k = ck, c = "white"; var vals = valsCW;}
+    else if (getNode('curveRed').checked) {var X = cxr, Y = cyr, k = ckr, c = "red"; var vals = valsCR;}
+      else if (getNode('curveGreen').checked) {var X = cxg, Y = cyg, k = ckg, c = "green"; var vals = valsCG;}
+        else if (getNode('curveBlue').checked) {var X = cxb, Y = cyb, k = ckb, c = "blue"; var vals = valsCB;}
   } else {
     var blocks = document.getElementsByClassName("curve_channels");
     var index = [].indexOf.call(blocks, bl);
@@ -995,12 +1030,12 @@ function updateCurvesVals(bl = null) {
 }
 
 function moveCircle(block,x2,y2) {
-  var canv = document.getElementById("curves");
+  var canv = getNode("curves");
   var canvx = canv.getContext('2d');
-  if (document.getElementById('curveWhite').checked) {var X = cx, Y = cy, k = ck, c = "white"; var vals = valsCW;}
-  else if (document.getElementById('curveRed').checked) {var X = cxr, Y = cyr, k = ckr, c = "red"; var vals = valsCR;}
-    else if (document.getElementById('curveGreen').checked) {var X = cxg, Y = cyg, k = ckg, c = "green"; var vals = valsCG;}
-      else if (document.getElementById('curveBlue').checked) {var X = cxb, Y = cyb, k = ckb, c = "blue"; var vals = valsCB;}
+  if (getNode('curveWhite').checked) {var X = cx, Y = cy, k = ck, c = "white"; var vals = valsCW;}
+  else if (getNode('curveRed').checked) {var X = cxr, Y = cyr, k = ckr, c = "red"; var vals = valsCR;}
+    else if (getNode('curveGreen').checked) {var X = cxg, Y = cyg, k = ckg, c = "green"; var vals = valsCG;}
+      else if (getNode('curveBlue').checked) {var X = cxb, Y = cyb, k = ckb, c = "blue"; var vals = valsCB;}
   if (X[X.length-1] != canv.width) {X.push(canv.width); Y.push(0);}
   if (x2 > canv.width) x2 = canv.width;
   else if (x2 < 0) x2 = 0;
@@ -1036,7 +1071,7 @@ function moveCircle(block,x2,y2) {
 }
 
 function updateCurve(vals, color) {
-  var canv = document.getElementById("curves");
+  var canv = getNode("curves");
   var canvx = canv.getContext('2d');
   canvx.clearRect(0,0,canv.width,canv.height);
   canvx.beginPath();
@@ -1054,7 +1089,7 @@ function updateCurve(vals, color) {
   canvx.lineWidth = 2;
   canvx.stroke();
   canvx.closePath();
-  var ctx = document.getElementById("curvesPreview").getContext('2d');
+  var ctx = getNode("curvesPreview").getContext('2d');
   ctx.putImageData(tempData,0,0);
   var data = ctx.getImageData(0,0,canvas.width,canvas.height);
   var d = data.data;
@@ -1066,6 +1101,127 @@ function updateCurve(vals, color) {
   ctx.putImageData(data,0,0);
 }
 
+function createSelection() {
+  var mode = Selection.creatingType;
+  var x2 = (event.pageX - $('#main_canvas').offset().left)/scale, y2 = (event.pageY - $('#main_canvas').offset().top)/scale;
+  sel.globalAlpha = 1;
+  sel.strokeStyle = 'white';
+  sel.fillStyle = 'white';
+  sel.lineWidth = 2;
+  sel.clearRect(0,0,main_x,main_y);
+  if (mode == 1) {
+    Selection.points[0] = x1+2;
+    Selection.points[1] = y1+2;
+    Selection.points[2] = x2-2;
+    Selection.points[3] = y2-2;
+    sel.strokeRect(x1,y1,x2-x1,y2-y1);
+  }
+  if (mode == 2) {
+    Selection.points[0] = x1+1;
+    Selection.points[1] = y1+1;
+    Selection.points[2] = x2+1;
+    Selection.points[3] = y2+1;
+    sel.beginPath();
+    sel.ellipse(x1+(x2-x1)/2, y1+(y2-y1)/2, Math.abs((x2-x1)/2), Math.abs((y2-y1)/2), 0, 0, Math.PI*2);
+    sel.stroke();
+  }
+  if (mode == 3) {
+    var arr = Selection.points;
+    if (arr == false) {arr.push(x1); arr.push(y1);}
+    arr.push(x2); arr.push(y2);
+    sel.beginPath();
+    sel.moveTo(arr[0],arr[1]);
+    for (var i=2; i<arr.length; i+=2) {
+      sel.lineTo(arr[i], arr[i+1]);
+      sel.moveTo(arr[i],arr[i+1]);
+    }
+    sel.closePath();
+    sel.stroke();
+  }
+}
+
+function setSelection(c) {
+  var arr = Selection.points;
+  if (arr == false) {c.restore();}
+  else {
+    c.save();
+    c.beginPath();
+    var mode = Selection.creatingType;
+    if (mode == 1) {
+      var ax = [arr[0], arr[2]], ay = [arr[1], arr[3]];
+      Selection.left = Math.min.apply(Math, ax);
+      Selection.top = Math.min.apply(Math, ay);
+      Selection.width = Math.max.apply(Math, ax) - Selection.left;
+      Selection.height = Math.max.apply(Math, ay) - Selection.top;
+
+      c.rect(arr[0],arr[1],Selection.width,Selection.height);
+    }
+    else if (mode == 2) {
+      var ax = [arr[0], arr[2]], ay = [arr[1], arr[3]];
+      Selection.left = Math.min.apply(Math, ax);
+      Selection.top = Math.min.apply(Math, ay);
+      Selection.width = Math.max.apply(Math, ax) - Selection.left;
+      Selection.height = Math.max.apply(Math, ay) - Selection.top;
+      c.ellipse(arr[0]+(arr[2]-arr[0])/2, arr[1]+(arr[3]-arr[1])/2, (Selection.width)/2, (Selection.height)/2, 0, 0, Math.PI*2);
+    }
+    else if (mode == 3) {
+      sel.beginPath();
+      c.moveTo(arr[0],arr[1]);
+      sel.moveTo(arr[0],arr[1]);
+      for (var i=2; i<arr.length; i+=2) {
+        c.lineTo(arr[i], arr[i+1]);
+        sel.lineTo(arr[i], arr[i+1]);
+      }
+      sel.closePath();
+      sel.stroke();
+      var ax = [], ay = [];
+      for (var i=0; i<arr.length; i+=2) {
+        ax[i/2] = arr[i];
+        ay[i/2] = arr[i+1];
+      }
+      Selection.left = Math.min.apply(Math, ax);
+      Selection.top = Math.min.apply(Math, ay);
+      Selection.width = Math.max.apply(Math, ax) - Selection.left;
+      Selection.height = Math.max.apply(Math, ay) - Selection.top;
+    }
+    c.clip();
+    c.closePath();
+    Selection.btns = true;
+    Array.prototype.forEach.call(document.getElementsByClassName("selButton"), (block) => {
+      block.classList.add("visible");
+      block.style.top = ((Selection.top)+(Selection.height/2)) + 'px';
+    });
+    getNode("cutSel").style.left = (Selection.left - 30) + 'px';
+    getNode("copySel").style.left = (Selection.left + Selection.width + 10) + 'px';
+  }
+}
+
+function selectionButtons(btn, bl) {
+  if (Selection.creatingType == btn) {resetInstrument(); return;}
+  changeInst(bl); Selection.creatingType = btn;
+  instrument = btn+7;
+  updateCursor(6);
+  if (Selection.btns)
+    Array.prototype.forEach.call(document.getElementsByClassName("selButton"), (block) => {
+      block.classList.add("visible");
+    });
+}
+
+function removeSelection() {
+  sel.clearRect(0,0,main_x,main_y);
+  Selection.btns = false;
+  Selection.creating = true;
+  Selection.points = [];
+  ctx.restore();
+  Array.prototype.forEach.call(document.getElementsByClassName("selButton"), (block) => {
+    block.classList.remove("visible");
+  });
+}
+
+function infoCoords() {
+  getNode("infoX").innerText = "X: " + Math.floor(ctxX/scale); getNode("infoY").innerText = "Y: " + Math.floor(ctxY/scale);
+}
+
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1075,7 +1231,7 @@ document.addEventListener('keydown', function(event) {
   if (event.shiftKey) {
     shift = true;
   }
-  if (event.ctrlKey || event.metaKey) {ctrl = true; updateCursor(8);}
+  if (event.ctrlKey || event.metaKey) {ctrl = true; updateCursor(-2);}
   if (event.code == "Space" && !$("input").is(":focus")) {$("#colorButton").click();}
   if (event.code == 'KeyX' && !$("input").is(":focus")) {swapColors();}
   if (event.code == 'Enter' && adding && !$("input").is(":focus")) {$(".imgApply")[0].click();}
@@ -1092,7 +1248,7 @@ document.addEventListener('keydown', function(event) {
 });
 
 document.addEventListener('keyup', function(event) {
-  if (event.code == 'Backspace' && adding == 2) {updateInputWidth(document.getElementById("addedText"));}
+  if (event.code == 'Backspace' && adding == 2) {updateInputWidth(getNode("addedText"));}
   if (event.key == "Shift") {shift = false;}
   if (event.key = "Control" || event.metaKey) {ctrl = false; updateCursor(instrument);}
   //console.log(event);
@@ -1116,16 +1272,64 @@ document.addEventListener('wheel', function(event) {
     scale = scale1+scale2;
     updateZoom(m);
   }
-}, { passive: false });
+}, { passive: false});
 
-  document.getElementsByClassName("canvases")[0].addEventListener("mousedown", function() {
-    if (instrument != 6 && !ctrl && !correctingBool ) {un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
-      if (!(instrument>2 && instrument < 6)) {ctx.globalAlpha = tr1; un1.style.opacity = tr1;}  isDrawing = 1; ctxX = event.pageX - $('#main_canvas').offset().left; ctxY = event.pageY - $('#main_canvas').offset().top; tr2 = tr1;
+Array.prototype.forEach.call([getNode('copySel'), getNode('cutSel')], function(el, mode){
+  el.addEventListener('mousedown', function(){
+    var canv = document.createElement('canvas');
+    var canvx = canv.getContext('2d');
+    canv.width = Selection.width;
+    canv.height = Selection.height;
+    addImg.width = canv.width;
+    addImg.height = canv.height;
+    var m = Selection.creatingType;
+    if (m == 2) {
+      canvx.ellipse(canv.width/2, canv.height/2, canv.width/2, canv.height/2, 0, 0, Math.PI*2);
+      canvx.clip();
+    }
+    else if (m == 3) {
+      var arr = Selection.points;
+      canvx.beginPath();
+      canvx.moveTo(arr[0]-Selection.left,arr[1]-Selection.top);
+      for (var i=2; i<arr.length-3; i+=2) {
+        canvx.lineTo(arr[i]-Selection.left, arr[i+1]-Selection.top);
+      }
+      canvx.closePath();
+      canvx.clip();
+    }
+    canvx.drawImage(canvas, -Selection.left, -Selection.top);
+    var url = canv.toDataURL();
+    if (mode) {
+      ctx.clearRect(Selection.left, Selection.top, Selection.width, Selection.height);
+    }
+    removeSelection();
+    addImg.src = url;
+    addImage(url);
+  });
+});
+
+  un1.addEventListener("mousedown", function() {
+    if (instrument != 6 && !ctrl && !correctingBool && !adding) {
+      un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
+      if (!(instrument>2 && instrument < 6)) {ctx.globalAlpha = tr1; un1.style.opacity = tr1;}  isDrawing = 1;
       if (instrument) {
         ctx.drawImage(un1,0,0);
-        x1 = event.pageX - $('#main_canvas').offset().left; y1 = event.pageY - $('#main_canvas').offset().top;
       }
-    } else if (ctrl) {
+    }
+    if (Selection.creatingType && !ctrl) {
+      if (getNode('selectionCanvas')) getNode('selectionCanvas').remove();
+      select = document.createElement('canvas');
+      select.setAttribute('id', 'selectionCanvas');
+      sel = select.getContext('2d');
+      select.width=main_x; select.height=main_y;
+      document.getElementsByClassName("inin")[0].appendChild(select);
+      removeSelection();
+    }
+    });
+    document.getElementsByClassName("canvases")[0].addEventListener("mousedown", function() {
+      x1 = (event.pageX - $('#main_canvas').offset().left)/scale; y1 = (event.pageY - $('#main_canvas').offset().top)/scale;
+      ctxX = event.pageX - $('#main_canvas').offset().left; ctxY = event.pageY - $('#main_canvas').offset().top; tr2 = tr1;
+    if (ctrl) {
       x1 = event.pageX; y1 = event.pageY;
       isMoving = 1;
     }
@@ -1181,16 +1385,20 @@ document.addEventListener('wheel', function(event) {
     if (instrument != 6) {
       if (!(instrument>2 && instrument<6))ctx.globalAlpha = tr1;
       if (instrument != 1) ctx.drawImage(un1,0,0); else {
-        if (!document.getElementById("penType").selectedIndex) ctx.drawImage(un1,0,0);
+        if (!getNode("penType").selectedIndex) ctx.drawImage(un1,0,0);
       }
       undo.clearRect(0,0,main_x,main_y);
     }
-    if (instrument == 1) {
-      if (document.getElementById("penType").selectedIndex) {penBrush(document.getElementById("penType").selectedIndex);}
+    if (Selection.creating) {
+      Selection.creating = 0;
+      setSelection(ctx);
     }
-    if (adding == 1 || adding == 3) {InImg.Top = document.getElementById("image_border").offsetTop; InImg.Left = document.getElementById("image_border").offsetLeft;
-    InImg.Height = document.getElementById("image_border").offsetHeight; InImg.Width = document.getElementById("image_border").offsetWidth;}
-    else if (adding == 2) {InImg.Top = document.getElementById("text_border").offsetTop; InImg.Left = document.getElementById("text_border").offsetLeft;}
+    if (instrument == 1) {
+      if (getNode("penType").selectedIndex) {penBrush(getNode("penType").selectedIndex);}
+    }
+    if (adding == 1 || adding == 3) {InImg.top = getNode("image_border").offsetTop; InImg.left = getNode("image_border").offsetLeft;
+    InImg.height = getNode("image_border").offsetHeight; InImg.width = getNode("image_border").offsetWidth;}
+    else if (adding == 2) {InImg.top = getNode("text_border").offsetTop; InImg.left = getNode("text_border").offsetLeft;}
     canvX = document.getElementsByClassName('in')[0].offsetLeft; canvY = document.getElementsByClassName('in')[0].offsetTop;
     circle = null;
   });
@@ -1210,6 +1418,7 @@ document.addEventListener('wheel', function(event) {
       if (isSliding == 5) {colorCorrection(3);}
     }
     if (circle) {moveCircle(circle, event.pageX - $('#curvesContainer').offset().left, event.pageY - $('#curvesContainer').offset().top);}
+    if (Selection.creating) {createSelection(Selection.creatingType);}
     if (isMoving == 1 && !ctrl) {moveImg(event);}
     if (isMoving == 1 && ctrl) {moveCanvas(event);}
     if (isMoving > 1) {
@@ -1221,16 +1430,9 @@ document.addEventListener('wheel', function(event) {
         case 6: imgRotate(event); break;
       }
     }
-    document.getElementById("cursor").style.left = event.pageX-size/2-cBorder + 'px';
-    document.getElementById("cursor").style.top = event.pageY-size/2-cBorder + 'px';
+    getNode("cursor").style.left = event.pageX-size/2-cBorder + 'px';
+    getNode("cursor").style.top = event.pageY-size/2-cBorder + 'px';
     ctxX = event.pageX - $('#main_canvas').offset().left; ctxY = event.pageY - $('#main_canvas').offset().top;
-    var cx = ctxX/scale, cy = ctxY/scale;
-    if (cx>=0 && cx<=main_x && cy>=0 && cy<=main_y) {
-      document.getElementById("infoX").innerText = "X: " + Math.floor(cx); document.getElementById("infoY").innerText = "Y: " + Math.floor(cy);
-    } else {
-      document.getElementById("infoX").innerText = "Вне";
-      document.getElementById("infoY").innerText = "холста";
-    }
   });
 
 $('#clearButton').click(function(){
@@ -1241,7 +1443,13 @@ $('#clearButton').click(function(){
   }
 });
 
-$(document).on("click","#exchange-colors", swapColors);
+getNode('exchange-colors').addEventListener("click", swapColors);
+
+document.getElementsByClassName('inin')[0].addEventListener('mousemove', infoCoords);
+document.getElementsByClassName('inin')[0].addEventListener('mouseleave', function(){
+  getNode('infoX').innerText = "Вне"; getNode('infoY').innerText = "холста";
+});
+
 
 $('#brushButton').click(function(){
   if (instrument == 1) {resetInstrument(); return;}
@@ -1329,7 +1537,7 @@ $('#zoom-info').click(function(){
   scale = scale1 + scale2;
   updateZoom();
   if (ctrl && shift) {
-    document.getElementById("TEST").style.display = "flex";
+    getNode("TEST").style.display = "flex";
     var blocks = document.getElementsByClassName("imgRotate");
     for (var i=0; i<blocks.length; i++) blocks[i].style.display = "flex";
   }
@@ -1339,15 +1547,27 @@ $('#applyProps').click(function(){
   applyColorCorrection();
 });
 
+getNode("rectselButton").addEventListener("click",function(){
+  selectionButtons(1, this);
+});
+
+getNode("arcselButton").addEventListener("click",function(){
+  selectionButtons(2, this);
+});
+
+getNode("lassoButton").addEventListener("click",function(){
+  selectionButtons(3, this);
+});
+
 $(document).on("click", "#brush-size span", function(){
-  var block = document.getElementById("size_slider");
+  var block = getNode("size_slider");
   toggleVisible(block);
 })
 
 $('#imagePropsButton').click(function(){
-    block = document.getElementById("imageProperties");
+    block = getNode("imageProperties");
     correctingBool = toggleVisible(block);
-    var nonRes = [document.getElementById("textButton"), document.getElementById("imagePropsButton")];
+    var nonRes = [getNode("textButton"), getNode("imagePropsButton")];
     resetInstrument(); colorInstrument(nonRes[0], nonRes[1]);
     canvas.style.filter = "brightness("+(100+colCorrect[2])+"%) contrast("+(100+colCorrect[0])+"%) saturate("+(100+colCorrect[1])+"%)";
   if (correctingBool) {
@@ -1356,7 +1576,7 @@ $('#imagePropsButton').click(function(){
   }
   if (!correctingBool) {
     canvas.style.filter = "";
-    document.getElementsByClassName('in')[0].removeChild(document.getElementById('tempFilter'));
+    document.getElementsByClassName('in')[0].removeChild(getNode('tempFilter'));
     if (!adding) {var blocks = document.getElementsByClassName("button");
                   for (var i=0; i<blocks.length; i++) blocks[i].style.color = "";}
   }
@@ -1365,7 +1585,7 @@ $('#imagePropsButton').click(function(){
 $('.filter').click(function(){
   var mode = this.getAttribute('id');
   mode = parseInt(mode.slice(6, mode.length));
-  var canvx = document.getElementById("filterPreview");
+  var canvx = getNode("filterPreview");
   applyFilter(canvx, mode);
   colCorrect[4] = mode;
   var blocks = document.getElementsByClassName("filter");
@@ -1377,7 +1597,7 @@ $('#downloadButton').click(function(){
   var block = document.getElementsByClassName("overlay_container")[0];
   toggleVisible(block);
   for (var i=0; i<overlay.length; i++) overlay[i].style.display = "none";
-  document.getElementById("download_container").style.display = "flex";
+  getNode("download_container").style.display = "flex";
 });
 
 $(".layers_container .show-hide-btn").click(function(){
@@ -1390,8 +1610,8 @@ $("#imageButton").click(function(){
     var block = document.getElementsByClassName("overlay_container")[0];
     toggleVisible(block);
     for (var i=0; i<overlay.length; i++) overlay[i].style.display = "none";
-    document.getElementById("addImg_container").style.display = "flex";
-    document.getElementById("imageLink").focus(); document.getElementById("imageLink").select();
+    getNode("addImg_container").style.display = "flex";
+    getNode("imageLink").focus(); getNode("imageLink").select();
   }
 });
 
@@ -1402,9 +1622,9 @@ $(".overlay_dark").click(function(){
 
 $("#addImage").click(function(){
   var tried = false;
-  var url = document.getElementById("imageLink").value;
-  var file = document.getElementById("imageFile").files[0];
-  var msg = document.getElementById("addImg_container").getElementsByClassName("errorText")[0];
+  var url = getNode("imageLink").value;
+  var file = getNode("imageFile").files[0];
+  var msg = getNode("addImg_container").getElementsByClassName("errorText")[0];
   if (document.getElementsByName("file")[0].checked) {
     var reader = new FileReader();
     reader.onload = function() {
@@ -1457,14 +1677,14 @@ document.onpaste = function(event){
 $(document).on('click', ".imgCancel", function(){
   instBlock.innerHTML = "";
   if (adding == 1) {
-    document.getElementById("image_border").style.display = "none";
-    document.getElementById("addedImage").style.display = "none";
-    document.getElementById("addedImage").style.backgroundImage = "none";
+    getNode("image_border").style.display = "none";
+    getNode("addedImage").style.display = "none";
+    getNode("addedImage").style.backgroundImage = "none";
   } else if (adding == 2) {
-    document.getElementById("text_border").style.display = "none";
+    getNode("text_border").style.display = "none";
   } else if (adding == 3) {
-    document.getElementById("image_border").style.display = "none";
-    canvas.style.filter = ""; document.getElementById('bg_canvas').style.filter = "";
+    getNode("image_border").style.display = "none";
+    canvas.style.filter = ""; getNode('bg_canvas').style.filter = "";
   }
   if (!correctingBool) {var blocks = document.getElementsByClassName("button");
                         for (var i=0; i<blocks.length; i++) blocks[i].style.color = "";}
@@ -1476,19 +1696,19 @@ $(document).on('click', ".imgApply", function(){
   ctx.globalAlpha = 1;
   if (adding == 1) {
     ctx.save();
-    ctx.translate(InImg.Left+InImg.Width/2, InImg.Top+InImg.Height/2);
-    ctx.rotate(InImg.Angle * Math.PI / 180);
-    ctx.drawImage(addImg, -InImg.Width/2, -InImg.Height/2, InImg.Width, InImg.Height);
+    ctx.translate(InImg.left+InImg.width/2, InImg.top+InImg.height/2);
+    ctx.rotate(InImg.angle * Math.PI / 180);
+    ctx.drawImage(addImg, -InImg.width/2, -InImg.height/2, InImg.width, InImg.height);
     ctx.restore();
-    document.getElementById("image_border").style.display = "none";
-    document.getElementById("addedImage").style.display = "none";
-    document.getElementById("addedImage").style.backgroundImage = "none";
+    getNode("image_border").style.display = "none";
+    getNode("addedImage").style.display = "none";
+    getNode("addedImage").style.backgroundImage = "none";
   } else if (adding == 2) {
     ctx.beginPath();
-    var i = document.getElementById("addedText");
+    var i = getNode("addedText");
     var t = i.value;
     var style;
-    var fSize = document.getElementById("fontSize").value;
+    var fSize = getNode("fontSize").value;
     var Shift = 0;
     if (InImg.textFont == 3) {
       Shift = fSize / 2.8;
@@ -1507,16 +1727,16 @@ $(document).on('click', ".imgApply", function(){
       style = "TimesNewRoman, sans"
     }
     var res = fSize + "px " + style;
-    if (document.getElementById("boldText").checked) res = "bold " + res;
-    if (document.getElementById("italicText").checked) res = "italic " + res;
+    if (getNode("boldText").checked) res = "bold " + res;
+    if (getNode("italicText").checked) res = "italic " + res;
     ctx.font = res;
     ctx.textAlign = "center"
     ctx.textBaseline = "top";
-    var container = document.getElementById("text_border");
-    InImg.textStroke = document.getElementById("strokeText").checked;
+    var container = getNode("text_border");
+    InImg.textStroke = getNode("strokeText").checked;
     ctx.save();
-    ctx.translate(InImg.Left+container.offsetWidth/2, InImg.Top+container.offsetHeight/2);
-    ctx.rotate(InImg.Angle * Math.PI / 180);
+    ctx.translate(InImg.left+container.offsetWidth/2, InImg.top+container.offsetHeight/2);
+    ctx.rotate(InImg.angle * Math.PI / 180);
     if (InImg.textStroke) {
       var stroke = fSize / 12;
       ctx.lineWidth = stroke;
@@ -1526,17 +1746,17 @@ $(document).on('click', ".imgApply", function(){
     ctx.fillStyle = selectedColor;
     ctx.fillText(t, 0, -container.offsetHeight/2+12+Shift);
     ctx.restore();
-    document.getElementById("text_border").style.display = "none";
+    getNode("text_border").style.display = "none";
     ctx.closePath();
   } else if (adding == 3) {
-    var D = ctx.getImageData(InImg.Left, InImg.Top, Math.abs(InImg.Left)+InImg.Width-2, Math.abs(InImg.Top)+InImg.Height-2);
-    updateCanvas(InImg.Width-2, InImg.Height-2);
+    var D = ctx.getImageData(InImg.left, InImg.top, Math.abs(InImg.left)+InImg.width-2, Math.abs(InImg.top)+InImg.height-2);
+    updateCanvas(InImg.width-2, InImg.height-2);
     ctx.putImageData(D,0,0);
-    document.getElementById("image_border").style.display = "none";
-    canvas.style.filter = ""; document.getElementById('bg_canvas').style.filter = "";
-    var block = document.getElementById("pasteImg");
+    getNode("image_border").style.display = "none";
+    canvas.style.filter = ""; getNode('bg_canvas').style.filter = "";
+    var block = getNode("pasteImg");
     block.classList.remove("visible");
-    var checker = document.getElementById("pasteImg").getElementsByTagName("input")[0];
+    var checker = getNode("pasteImg").getElementsByTagName("input")[0];
     checker.checked = false;
   }
 
@@ -1550,22 +1770,26 @@ $("#textButton").click(function(){
     if (!adding) {
       document.getElementsByClassName("imgRotate")[0].style.display = "";
       adding = 2;
-      var nonRes = [document.getElementById("textButton"), document.getElementById("imagePropsButton")];
+      var nonRes = [getNode("textButton"), getNode("imagePropsButton")];
       resetInstrument(); colorInstrument(nonRes[0], nonRes[1]);
-      InImg.Left = 0; InImg.Top = 0; InImg.Angle = 0;
     instBlock.innerHTML = '<div class="imgApply flexed"><span></span></div><div class="imgCancel flexed">×</div>   <label class="fontSize"><div>T<span>↕</span></div><input type="number" min="0" id="fontSize" placeholder="px"/></label>   <select id="fontStyle" style="margin:0px 10px;"><option style="font-family:Arial, sans-serif;" value="Arial, sans-serif">Arial</option> <option style="font-family:TimesNewRoman, sans;" value="TimesNewRoman, sans">Times New Roman</option> <option style="font-family:Impact, sans-serif;" value="Impact, sans-serif">Impact</option> <option style="font-family:ComicSans, cursive, sans-serif" value="ComicSans, cursive, sans-serif">Comic Sans</option></select><label class="input-cont flexed"><input id="strokeText" type="checkbox" /><div class="input-style"></div><span>Обводка текста</span></label><label class="input-cont flexed"><input id="boldText" type="checkbox" /><div class="input-style"></div><span>Жирный</span></label><label class="input-cont flexed"><input id="italicText" type="checkbox" /><div class="input-style"></div><span>Курсив</span></label>';
+    getNode("fontSize").value = InImg.textSize;
+    getNode("fontStyle").selectedIndex = InImg.textFont;
+    getNode("strokeText").checked = InImg.textStroke;
+    getNode("boldText").checked = InImg.textBold;
+    getNode("italicText").checked = InImg.textItalic;
+    getNode("textMove").style.transform = '';
+    getNode("addedText").style.fontSize = InImg.textSize + 'px';
+    updateInputWidth(getNode("addedText"));
+    getNode("text_border").style.display = "block";
+    InImg.left = (main_x-getNode("text_border").offsetWidth)/2;
+    InImg.top = (main_y-getNode("text_border").offsetHeight)/2;
+    console.log(getNode("text_border").offsetWidth, getNode("text_border").offsetHeight);
+    InImg.angle = 0;
     $("#text_border").css({
-      "display":"block",
-      "top":0+'px',
-      "left":0+'px'
+      "top":InImg.top+'px',
+      "left":InImg.left+'px'
     });
-    document.getElementById("fontSize").value = InImg.textSize;
-    document.getElementById("fontStyle").selectedIndex = InImg.textFont;
-    document.getElementById("strokeText").checked = InImg.textStroke;
-    document.getElementById("boldText").checked = InImg.textBold;
-    document.getElementById("italicText").checked = InImg.textItalic;
-    document.getElementById("textMove").style.transform = '';
-    updateInputWidth(document.getElementById("addedText"));
     }
   });
 
@@ -1574,85 +1798,83 @@ $("#textButton").click(function(){
   });
 
   $(document).on("change","#fontSize", function() {
-    InImg.textSize = document.getElementById("fontSize").value;
-    document.getElementById("addedText").style.fontSize = InImg.textSize + 'px';
-    updateInputWidth(document.getElementById("addedText"));
+    InImg.textSize = getNode("fontSize").value;
+    getNode("addedText").style.fontSize = InImg.textSize + 'px';
+    updateInputWidth(getNode("addedText"));
   });
 
   $(document).on("click","#fontStyle", function() {
     InImg.textFont = this.selectedIndex;
     var t = this.options[this.selectedIndex].value;
-    document.getElementById("addedText").style.fontFamily = t;
-    updateInputWidth(document.getElementById("addedText"));
+    getNode("addedText").style.fontFamily = t;
+    updateInputWidth(getNode("addedText"));
   });
 
   $(document).on("change","#boldText", function() {
     InImg.textBold = this.checked;
-    this.checked ? document.getElementById("addedText").style.fontWeight = "bold" : document.getElementById("addedText").style.fontWeight = "";
+    this.checked ? getNode("addedText").style.fontWeight = "bold" : getNode("addedText").style.fontWeight = "";
   });
 
   $(document).on("change","#italicText", function() {
     InImg.textItalic = this.checked;
-    this.checked ? document.getElementById("addedText").style.fontStyle = "italic" : document.getElementById("addedText").style.fontStyle = "";
+    this.checked ? getNode("addedText").style.fontStyle = "italic" : getNode("addedText").style.fontStyle = "";
   });
 
-document.getElementById("dim_presetFile").onchange = function(e) {
+getNode("dim_presetFile").onchange = function(e) {
     var file = this.files[0];
     var reader = new FileReader();
     reader.onload = function() {
-      addImg.src = reader.result;
       url = reader.result;
-      addImg.onload = function() {
-        document.getElementById("canvasWidth").value = this.width;
-        document.getElementById("canvasHeight").value = this.height;
+      bgImg.src = url;
+      bgImg.onload = function() {
+        getNode("canvasWidth").value = this.width;
+        getNode("canvasHeight").value = this.height;
         updateCanvasPreview();
       }
     }
     reader.readAsDataURL(file);
     var fileName = '';
-	if( this.files && this.files.length > 1 )
-      fileName = ( this.getAttribute( 'data-multiple-caption' ) || '' ).replace( '{count}', this.files.length );
-	else
 	  fileName = e.target.value.split( "\\" ).pop();
+    if (fileName.length > 25) fileName = fileName.slice(0, 25) + "...";
     this.nextElementSibling.innerText = fileName;
-    var block = document.getElementById("pasteImg");
+    var block = getNode("pasteImg");
     block.classList.add("visible");
-    var checker = document.getElementById("pasteImg").getElementsByTagName("input")[0];
+    var checker = getNode("pasteImg").getElementsByTagName("input")[0];
     checker.checked = true;
     this.files = undefined;
 };
 
 $('.dim_preset').click(function(){
   var mode = $('.dim_preset').index(this);
-  var w = document.getElementById("canvasWidth"), h = document.getElementById("canvasHeight");
+  var w = getNode("canvasWidth"), h = getNode("canvasHeight");
   if (mode == 0) {w.value = 1920; h.value = 1080;}
   else if (mode == 1) {w.value = 1280; h.value = 720;}
   else if (mode == 2) {w.value = 1600; h.value = 1600;}
-  var block = document.getElementById("pasteImg");
+  var block = getNode("pasteImg");
   block.classList.remove("visible");
-  var checker = document.getElementById("pasteImg").getElementsByTagName("input")[0];
+  var checker = getNode("pasteImg").getElementsByTagName("input")[0];
   checker.checked = false;
   updateCanvasPreview();
 });
 
 $('#canvasWidth, #canvasHeight').on('change', function(){
-  var block = document.getElementById("pasteImg");
+  var block = getNode("pasteImg");
   block.classList.remove("visible");
-  var checker = document.getElementById("pasteImg").getElementsByTagName("input")[0];
+  var checker = getNode("pasteImg").getElementsByTagName("input")[0];
   checker.checked = false;
-  if (document.getElementById("link").checked) {
-    if (this == document.getElementById("canvasWidth")) document.getElementById("canvasHeight").value = Math.round(this.value * main_y / main_x);
-    else document.getElementById("canvasWidth").value = Math.round(this.value * main_x / main_y);
+  if (getNode("link").checked) {
+    if (this == getNode("canvasWidth")) getNode("canvasHeight").value = Math.round(this.value * main_y / main_x);
+    else getNode("canvasWidth").value = Math.round(this.value * main_x / main_y);
   }
   updateCanvasPreview();
 });
 
 $('#updateCanvas').click(function(){
-  var w = parseInt(document.getElementById("canvasWidth").value), h = parseInt(document.getElementById("canvasHeight").value);
+  var w = parseInt(getNode("canvasWidth").value), h = parseInt(getNode("canvasHeight").value);
   updateCanvas(w, h);
-  var checker = document.getElementById("pasteImg").getElementsByTagName("input")[0];
+  var checker = getNode("pasteImg").getElementsByTagName("input")[0];
   if (checker.checked) {
-    ctx.drawImage(addImg,0,0);
+    ctx.drawImage(bgImg,0,0);
   }
   var block = document.getElementsByClassName("overlay_container")[0];
   toggleVisible(block);
@@ -1663,8 +1885,8 @@ $('#newCanvasButton').click(function(){
     var block = document.getElementsByClassName("overlay_container")[0];
     toggleVisible(block);
     for (var i=0; i<overlay.length; i++) overlay[i].style.display = "none";
-    document.getElementById("editCanvas_container").style.display = "flex";
-    document.getElementById("canvasWidth").value = main_x; document.getElementById("canvasHeight").value = main_y;
+    getNode("editCanvas_container").style.display = "flex";
+    getNode("canvasWidth").value = main_x; getNode("canvasHeight").value = main_y;
     updateCanvasPreview();
   }
 });
@@ -1673,8 +1895,8 @@ $("#openFiltersButton").click(function() {
   var block = document.getElementsByClassName("overlay_container")[0];
   toggleVisible(block);
   for (var i=0; i<overlay.length; i++) overlay[i].style.display = "none";
-  document.getElementById("filters_container").style.display = "flex";
-  var canv = document.getElementById("filterPreview");
+  getNode("filters_container").style.display = "flex";
+  var canv = getNode("filterPreview");
   var canvx = canv.getContext('2d');
   if (canvas.width > canvas.height) {canv.width = 400; canv.height = 400 * (canvas.height/canvas.width);}
     else if (canvas.width < canvas.height) {canv.height = 400; canv.width = 400 * (canvas.width/canvas.height);}
@@ -1693,25 +1915,27 @@ $('#applyFilter').click(function(){
 });
 
 $('#applySharpness').click(function(){
-  var pow = document.getElementById("sharpInput").value / 100;
+  var pow = getNode("sharpInput").value / 100;
   if (pow < 0 || pow > 5) pow = 0.5;
   applyFilter(canvas, -1, pow);
 });
 
 $("#downloadBtn").click(function(){
   dl.clearRect(0,0,main_x,main_y);
-  dl.drawImage(document.getElementById('bg_canvas'),0,0);
-  dl.drawImage(document.getElementById('main_canvas'),0,0);
+  dl.drawImage(getNode('bg_canvas'),0,0);
+  dl.drawImage(getNode('main_canvas'),0,0);
   dl.globalAlpha = tr2;
-  dl.drawImage(document.getElementById('undo_canvas1'),0,0);
+  dl.drawImage(getNode('undo_canvas1'),0,0);
   var mm, fm;
-  if (document.getElementById("jpg").checked) {mm="image/jpeg"; fm="jpg"}
-    else if (document.getElementById("png").checked) {mm="image/webp"; fm="png"}
-      else if (document.getElementById("webp").checked) {mm="image/webp"; fm="webp"}
-  var q = document.getElementById("downloadQuality").value / 10;
-  var dataURL = document.getElementById('dl_canvas').toDataURL(mm, q);
+  if (getNode("jpg").checked) {mm="image/jpeg"; fm="jpg"}
+    else if (getNode("png").checked) {mm="image/webp"; fm="png"}
+      else if (getNode("webp").checked) {mm="image/webp"; fm="webp"}
+  var q = getNode("downloadQuality").value / 10;
+  var dataURL = getNode('dl_canvas').toDataURL(mm, q);
   var link = document.createElement('a');
-  link.download = "mordegaard-paint."+fm;
+  var name = getNode("downloadName").value;
+  if (!name) name = "mordegaard-paint";
+  link.download = name+"."+fm;
   link.href = dataURL;
   link.click();
   dl.globalAlpha = 1;
@@ -1720,11 +1944,11 @@ $("#downloadBtn").click(function(){
 $("#cropButton").click(function(){
   if (!adding) {
     document.getElementsByClassName("imgRotate")[0].style.display = "none";
-    document.getElementById("grid").style.display = "";
+    getNode("grid").style.display = "";
     resetInstrument(); colorInstrument();
     if (correctingBool) $('#imagePropsButton').click();
-    canvas.style.filter = "brightness(0.5)"; document.getElementById('bg_canvas').style.filter = "brightness(0.5)";
-    var brd = document.getElementById("image_border");
+    canvas.style.filter = "brightness(0.5)"; getNode('bg_canvas').style.filter = "brightness(0.5)";
+    var brd = getNode("image_border");
     instBlock.innerHTML = '<div class="imgApply flexed"><span></span></div><div class="imgCancel flexed">×</div><span style="margin-left:20px;">Оригинал: </span><span id="origRes">'+main_x+'x'+main_y+'</span><span style="margin-left:20px;">Новое разрешение: </span><span id="newRes">'+main_x+'x'+main_y+'</span>';
     $("#image_border").css({
       "display":"block",
@@ -1734,32 +1958,32 @@ $("#cropButton").click(function(){
       "left":"0",
       "backdrop-filter":"brightness(2)"
     });
-    InImg.Left = 0; InImg.Top = 0; InImg.Width = main_x; InImg.Height = main_y; InImg.Prop = main_y/main_x; InImg.Angle = 0;
-    document.getElementById("full_img_border").style.transform = "";
+    InImg.left = 0; InImg.top = 0; InImg.width = main_x; InImg.height = main_y; InImg.prop = main_y/main_x; InImg.angle = 0;
+    getNode("full_img_border").style.transform = "";
     colorInstrument();
     adding = 3;
   }
 });
 
-document.getElementById("flipV").addEventListener('click',function(){flip(false, true);});
-document.getElementById("flipH").addEventListener('click',function(){flip(true, false);});
+getNode("flipV").addEventListener('click',function(){flip(false, true);});
+getNode("flipH").addEventListener('click',function(){flip(true, false);});
 
-document.getElementById("blurPower").addEventListener('mouseup',function(){
-  var canv = document.getElementById("blurPreview");
+getNode("blurPower").addEventListener('mouseup',function(){
+  var canv = getNode("blurPreview");
   var canvx = canv.getContext('2d');
   canvx.clearRect(0,0,canv.width,canv.height);
   canvx.putImageData(tempData,0,0);
   var pow = Math.floor(this.value / main_x * canv.width)
-  if (document.getElementById("gaussian").checked) StackBlur.canvasRGBA(canv, 0, 0, canv.width, canv.height, pow);
+  if (getNode("gaussian").checked) StackBlur.canvasRGBA(canv, 0, 0, canv.width, canv.height, pow);
 });
 
-document.getElementById("openBlurButton").addEventListener('click',function(){
+getNode("openBlurButton").addEventListener('click',function(){
   var block = document.getElementsByClassName("overlay_container")[0];
   toggleVisible(block);
   for (var i=0; i<overlay.length; i++) overlay[i].style.display = "none";
-  document.getElementById("blur_container").style.display = "flex";
-  document.getElementById("blurPower").value = 0;
-  var canv = document.getElementById("blurPreview");
+  getNode("blur_container").style.display = "flex";
+  getNode("blurPower").value = 0;
+  var canv = getNode("blurPreview");
   var canvx = canv.getContext('2d');
   if (canvas.width > canvas.height) {canv.width = 400; canv.height = 400 * (canvas.height/canvas.width);}
     else if (canvas.width < canvas.height) {canv.height = 400; canv.width = 400 * (canvas.width/canvas.height);}
@@ -1769,26 +1993,26 @@ document.getElementById("openBlurButton").addEventListener('click',function(){
   tempData = canvx.getImageData(0,0,canv.width,canv.height);
 });
 
-document.getElementById("applyBlurBtn").addEventListener('click',function(){
+getNode("applyBlurBtn").addEventListener('click',function(){
   ctx.globalAlpha = tr1; un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
-  var weight = document.getElementById("blurPower").value;
+  var weight = getNode("blurPower").value;
   toggleVisible(document.getElementsByClassName("overlay_container")[0]);
   StackBlur.canvasRGBA(canvas, 0, 0, main_x, main_y, weight);
 });
 
-document.getElementById("openHistogramButton").addEventListener('click',function() {
+getNode("openHistogramButton").addEventListener('click',function() {
   var block = document.getElementsByClassName("overlay_container")[0];
   toggleVisible(block);
   for (var i=0; i<overlay.length; i++) overlay[i].style.display = "none";
-  document.getElementById("histogram_container").style.display = "flex";
+  getNode("histogram_container").style.display = "flex";
   generateHistogram();
 });
 
-document.getElementById("curves").addEventListener("dblclick",function(e){
-  if (document.getElementById('curveWhite').checked) {var X = cx, Y = cy}
-  else if (document.getElementById('curveRed').checked) {var X = cxr, Y = cyr}
-    else if (document.getElementById('curveGreen').checked) {var X = cxg, Y = cyg}
-      else if (document.getElementById('curveBlue').checked) {var X = cxb, Y = cyb}
+getNode("curves").addEventListener("dblclick",function(e){
+  if (getNode('curveWhite').checked) {var X = cx, Y = cy}
+  else if (getNode('curveRed').checked) {var X = cxr, Y = cyr}
+    else if (getNode('curveGreen').checked) {var X = cxg, Y = cyg}
+      else if (getNode('curveBlue').checked) {var X = cxb, Y = cyb}
   var x2 = e.pageX - $(this).offset().left;
   var y2 = e.pageY - $(this).offset().top;
   var block = this.parentElement;
@@ -1808,11 +2032,11 @@ $(document).on("mousedown", "#curves_container .circle", function(){
 });
 
 $(document).on("dblclick", "#curves_container .circle", function(){
-  if (document.getElementById('curveWhite').checked) {var X = cx, Y = cy}
-  else if (document.getElementById('curveRed').checked) {var X = cxr, Y = cyr}
-    else if (document.getElementById('curveGreen').checked) {var X = cxg, Y = cyg}
-      else if (document.getElementById('curveBlue').checked) {var X = cxb, Y = cyb}
-  var canv = document.getElementById("curves");
+  if (getNode('curveWhite').checked) {var X = cx, Y = cy}
+  else if (getNode('curveRed').checked) {var X = cxr, Y = cyr}
+    else if (getNode('curveGreen').checked) {var X = cxg, Y = cyg}
+      else if (getNode('curveBlue').checked) {var X = cxb, Y = cyb}
+  var canv = getNode("curves");
   var index = [].indexOf.call(this.parentElement.children, this);
   X.splice(index,1); Y.splice(index,1);
   this.parentElement.removeChild(this);
@@ -1827,9 +2051,9 @@ $(".curve_channels").click(function(){
     else if (index == 2) {var X = cxg, Y = cyg}
       else if (index == 3) {var X = cxb, Y = cyb}
   if (X[X.length-1] != 256) {X.push(256); Y.push(0);}
-  var canv = document.getElementById("curves");
+  var canv = getNode("curves");
   updateCurvesVals(this);
-  var block = document.getElementById("curvesContainer");
+  var block = getNode("curvesContainer");
   var l = block.children.length;
   if (l > 1) {
     for (var i=1; i<l; i++) {block.removeChild(block.lastChild);}
@@ -1843,7 +2067,7 @@ $(".curve_channels").click(function(){
   }
 });
 
-document.getElementById("applyCurvesBtn").addEventListener('click',function() {
+getNode("applyCurvesBtn").addEventListener('click',function() {
   ctx.globalAlpha = tr1; un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
   toggleVisible(document.getElementsByClassName("overlay_container")[0]);
   var vals = [];
@@ -1858,13 +2082,13 @@ document.getElementById("applyCurvesBtn").addEventListener('click',function() {
   ctx.putImageData(data,0,0);
 });
 
-document.getElementById("openCurvesButton").addEventListener('click',function() {
+getNode("openCurvesButton").addEventListener('click',function() {
   var block = document.getElementsByClassName("overlay_container")[0];
   toggleVisible(block);
   for (var i=0; i<overlay.length; i++) overlay[i].style.display = "none";
-  document.getElementById("curves_container").style.display = "flex";
-  document.getElementById("curveWhite").checked = true;
-  var canv = document.getElementById("curvesPreview");
+  getNode("curves_container").style.display = "flex";
+  getNode("curveWhite").checked = true;
+  var canv = getNode("curvesPreview");
   var canvx = canv.getContext('2d');
   if (canvas.width > canvas.height) {canv.width = 320; canv.height = 320 * (canvas.height/canvas.width);}
     else if (canvas.width < canvas.height) {canv.height = 320; canv.width = 320 * (canvas.width/canvas.height);}
@@ -1872,7 +2096,7 @@ document.getElementById("openCurvesButton").addEventListener('click',function() 
   canvx.drawImage(canvas, 0, 0, canv.width, canv.height);
   canvx.drawImage(un1, 0, 0, canv.width, canv.height);
   tempData = canvx.getImageData(0,0,canv.width,canv.height);
-  canv = document.getElementById("curves");
+  canv = getNode("curves");
   canvx = canv.getContext('2d');
   canvx.clearRect(0,0,canv.width,canv.height);
   canvx.beginPath();
@@ -1882,7 +2106,7 @@ document.getElementById("openCurvesButton").addEventListener('click',function() 
   canvx.stroke();
   canvx.closePath();
   cx = [0,256]; cy= [256,0]; ck = []; cxr = [0,256]; cyr = [256,0]; ckr = []; cxg = [0,256]; cyg = [256,0]; ckg = []; cxb = [0,256]; cyb = [256,0]; ckb = [];
-  var block = document.getElementById("curvesContainer");
+  var block = getNode("curvesContainer");
   var l = block.children.length;
   if (l > 1) {
     for (var i=1; i<l; i++) {block.removeChild(block.lastChild);}
