@@ -747,7 +747,7 @@ input[type="radio"] {
   z-index: -1;
 }
 #imageProperties.visible {transform: none;}
-#imageProperties::-webkit-scrollbar {width: 8px;}
+#imageProperties::-webkit-scrollbar {width: 6px;}
 #imageProperties::-webkit-scrollbar-thumb {background: #348bee;}
 #imageProperties::-webkit-scrollbar-track {background: var(--ui-col);}
 

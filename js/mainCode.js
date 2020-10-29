@@ -45,6 +45,7 @@ selectedColor = '#ff0000';
 selectedColor2 = '#000000';
 $('#l1').css('background','#348bee');
 bg.fillStyle = bgColor; bg.fillRect(0,0,main_x,main_y);
+ctx.imageSmoothingEnabled = false;
 
 function getNode(node) {
   return document.getElementById(node);
@@ -343,6 +344,8 @@ function updateZoom(m) {
   cBorder = 1/scale;
   getNode("cursor").style.transform = "scale("+scale+")";
   getNode("cursor").style.borderWidth = cBorder+'px';
+  getNode("cutSel").style.transform = "translateY(-50%) scale("+(1/scale)+")";
+  getNode("copySel").style.transform = "translateY(-50%) scale("+(1/scale)+")";
   getNode("bg_canvas").style.backgroundSize = 1/scale + "%";
 }
 
@@ -379,6 +382,7 @@ function fill() {
     var c = document.createElement('canvas');
     c.width = Selection.width;
     c.height = Selection.height;
+    c.getContext('2d').imageSmoothingEnabled = false;
     c.getContext('2d').drawImage(canvas, -Selection.left, -Selection.top);
     var data = c.getContext('2d').getImageData(0,0,c.width,c.height);
     x2 = Math.floor(x2 - Selection.left); y2 = Math.floor(y2 - Selection.top);
@@ -403,6 +407,7 @@ function fill() {
 }
   var matchColor = getCol(x2,y2);
   if (JSON.stringify(matchColor) == JSON.stringify([red1,green1,blue1,matchColor[3]])) return;
+  if (x2 < 0 || x2 > wi || y2 < 0 || y2 > he) {console.log("yes"); return;}
   if (matchColor.compareCols([red1,green1,blue1,matchColor[3]])) depth = 0;
   function checkVert(x,y) {
     var left=false,right=false;
@@ -443,8 +448,7 @@ function addImage(url) {
       document.getElementsByClassName("imgRotate")[0].style.display = "";
       getNode("grid").style.display = "none";
       adding = 1;
-      var nonRes = getNode("imagePropsButton");
-      resetInstrument(); colorInstrument(nonRes);
+      resetInstrument();
       instBlock.innerHTML = '<div class="imgApply flexed"><span></span></div><div class="imgCancel flexed">×</div>';
       InImg.top = 0;
       InImg.left = 0;
@@ -470,8 +474,8 @@ function addImage(url) {
       });
       $("#addedImage").css({
         "background-image":"url("+url+")",
-        "width":(w+1)+"px",
-        "height":(h+1)+"px",
+        "width":(w)+"px",
+        "height":(h)+"px",
         "display":"block",
         "transform":"",
         "top":"0",
@@ -538,12 +542,6 @@ function resetInstrument() {
   instrument = -1;
   $('.button').css({'background':''});
   if (!adding) instBlock.innerHTML = '';
-}
-
-function colorInstrument(block1=false, block2=false, block3=false) {
-  var blocks = getNode("instruments").getElementsByClassName("button");
-  for (var i=0; i<blocks.length; i++) blocks[i].style.color = "grey";
-  if (block1) {block1.style.color = "";} if (block2) {block2.style.color = "";} if (block3) {block3.style.color = "";}
 }
 
 function colorCorrection(mode) {
@@ -799,6 +797,11 @@ function updateCanvas(w, h) {
   getNode("infoWidth").innerText = "Ширина: " + main_x;
   getNode("infoHeight").innerText = "Высота: " + main_y;
   InImg.textSize = Math.round(main_x * main_y / 24000);
+  Selection.btns = false;
+  Array.prototype.forEach.call(document.getElementsByClassName("selButton"), (block) => {
+    block.classList.remove("visible");
+  });
+  ctx.imageSmoothingEnabled = false;
 }
 
 function applyBlur(context, mode, weight) {
@@ -1280,6 +1283,7 @@ Array.prototype.forEach.call([getNode('copySel'), getNode('cutSel')], function(e
     var canvx = canv.getContext('2d');
     canv.width = Selection.width;
     canv.height = Selection.height;
+    canvx.imageSmoothingEnabled = false;
     addImg.width = canv.width;
     addImg.height = canv.height;
     var m = Selection.creatingType;
@@ -1311,7 +1315,11 @@ Array.prototype.forEach.call([getNode('copySel'), getNode('cutSel')], function(e
   un1.addEventListener("mousedown", function() {
     if (instrument != 6 && !ctrl && !correctingBool && !adding) {
       un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
-      if (!(instrument>2 && instrument < 6)) {ctx.globalAlpha = tr1; un1.style.opacity = tr1;}  isDrawing = 1;
+      if (!(instrument>2 && instrument < 6)) {ctx.globalAlpha = tr1; un1.style.opacity = tr1;}
+      else {
+        ctx.globalAlpha = 1; un1.style.opacity = 1;
+      }
+      isDrawing = 1;
       if (instrument) {
         ctx.drawImage(un1,0,0);
       }
@@ -1567,8 +1575,7 @@ $(document).on("click", "#brush-size span", function(){
 $('#imagePropsButton').click(function(){
     block = getNode("imageProperties");
     correctingBool = toggleVisible(block);
-    var nonRes = [getNode("textButton"), getNode("imagePropsButton")];
-    resetInstrument(); colorInstrument(nonRes[0], nonRes[1]);
+    resetInstrument();
     canvas.style.filter = "brightness("+(100+colCorrect[2])+"%) contrast("+(100+colCorrect[0])+"%) saturate("+(100+colCorrect[1])+"%)";
   if (correctingBool) {
     var div = document.createElement('div'); div.setAttribute('id','tempFilter');
@@ -1577,8 +1584,6 @@ $('#imagePropsButton').click(function(){
   if (!correctingBool) {
     canvas.style.filter = "";
     document.getElementsByClassName('in')[0].removeChild(getNode('tempFilter'));
-    if (!adding) {var blocks = document.getElementsByClassName("button");
-                  for (var i=0; i<blocks.length; i++) blocks[i].style.color = "";}
   }
 });
 
@@ -1770,8 +1775,7 @@ $("#textButton").click(function(){
     if (!adding) {
       document.getElementsByClassName("imgRotate")[0].style.display = "";
       adding = 2;
-      var nonRes = [getNode("textButton"), getNode("imagePropsButton")];
-      resetInstrument(); colorInstrument(nonRes[0], nonRes[1]);
+      resetInstrument();
     instBlock.innerHTML = '<div class="imgApply flexed"><span></span></div><div class="imgCancel flexed">×</div>   <label class="fontSize"><div>T<span>↕</span></div><input type="number" min="0" id="fontSize" placeholder="px"/></label>   <select id="fontStyle" style="margin:0px 10px;"><option style="font-family:Arial, sans-serif;" value="Arial, sans-serif">Arial</option> <option style="font-family:TimesNewRoman, sans;" value="TimesNewRoman, sans">Times New Roman</option> <option style="font-family:Impact, sans-serif;" value="Impact, sans-serif">Impact</option> <option style="font-family:ComicSans, cursive, sans-serif" value="ComicSans, cursive, sans-serif">Comic Sans</option></select><label class="input-cont flexed"><input id="strokeText" type="checkbox" /><div class="input-style"></div><span>Обводка текста</span></label><label class="input-cont flexed"><input id="boldText" type="checkbox" /><div class="input-style"></div><span>Жирный</span></label><label class="input-cont flexed"><input id="italicText" type="checkbox" /><div class="input-style"></div><span>Курсив</span></label>';
     getNode("fontSize").value = InImg.textSize;
     getNode("fontStyle").selectedIndex = InImg.textFont;
@@ -1945,7 +1949,7 @@ $("#cropButton").click(function(){
   if (!adding) {
     document.getElementsByClassName("imgRotate")[0].style.display = "none";
     getNode("grid").style.display = "";
-    resetInstrument(); colorInstrument();
+    resetInstrument();
     if (correctingBool) $('#imagePropsButton').click();
     canvas.style.filter = "brightness(0.5)"; getNode('bg_canvas').style.filter = "brightness(0.5)";
     var brd = getNode("image_border");
@@ -1960,7 +1964,6 @@ $("#cropButton").click(function(){
     });
     InImg.left = 0; InImg.top = 0; InImg.width = main_x; InImg.height = main_y; InImg.prop = main_y/main_x; InImg.angle = 0;
     getNode("full_img_border").style.transform = "";
-    colorInstrument();
     adding = 3;
   }
 });
