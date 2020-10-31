@@ -46,6 +46,7 @@ selectedColor2 = '#000000';
 $('#l1').css('background','#348bee');
 bg.fillStyle = bgColor; bg.fillRect(0,0,main_x,main_y);
 ctx.imageSmoothingEnabled = false;
+bg.imageSmoothingEnabled = true;
 
 function getNode(node) {
   return document.getElementById(node);
@@ -450,11 +451,6 @@ function addImage(url) {
       adding = 1;
       resetInstrument();
       instBlock.innerHTML = '<div class="imgApply flexed"><span></span></div><div class="imgCancel flexed">×</div>';
-      InImg.top = 0;
-      InImg.left = 0;
-      InImg.angle = 0;
-      document.getElementsByClassName("overlay_container")[0].classList.remove("visible");
-      getNode("full_img_border").style.transform = '';
       var w = addImg.width; var h = addImg.height;
       if (h > main_y) {
         w *= main_y / h; h = main_y;
@@ -464,12 +460,17 @@ function addImage(url) {
       }
       InImg.width = w; InImg.height = h;
       InImg.prop = h / w;
+      InImg.top = (main_y - h)/2;
+      InImg.left = (main_x - w)/2;
+      InImg.angle = 0;
+      document.getElementsByClassName("overlay_container")[0].classList.remove("visible");
+      getNode("full_img_border").style.transform = '';
       $("#image_border").css({
         "display":"block",
         "width":w+"px",
         "height":h+"px",
-        "top":"0",
-        "left":"0",
+        "top":InImg.top,
+        "left":InImg.left,
         "backdrop-filter":"",
       });
       $("#addedImage").css({
@@ -478,8 +479,8 @@ function addImage(url) {
         "height":(h)+"px",
         "display":"block",
         "transform":"",
-        "top":"0",
-        "left":"0"
+        "top":InImg.top,
+        "left":InImg.left
       });
       return;
     }
@@ -525,6 +526,46 @@ function penBrush(mode) {
       ctx.lineTo(X, Y);
       ctx.stroke();
       ctx.closePath();
+    }
+  } else if (mode == 3) {
+    var nbx = [], nby = [];
+    var speed = 0;
+    for (var i=0; i<brushCoords[0].length-1; i++) {
+      speed += Math.abs(brushCoords[0][i+1] - brushCoords[0][i]);
+      speed += Math.abs(brushCoords[1][i+1] - brushCoords[1][i]);
+      speed /= 2;
+    }
+    speed /= 1 / brushCoords[0].length;
+    for (var i=0; i<brushCoords[0].length; i+=Math.round(speed/150+1.5)) {
+      nbx.push(brushCoords[0][i]);
+      nby.push(brushCoords[1][i]);
+    }
+    function smooth(arr) {
+      var newArr = [arr[0]];
+      for (var i=1; i<arr.length; i++) {
+        var start = arr[i-1] + (arr[i]-arr[i-1])/3;
+        var end = arr[i] - (arr[i]-arr[i-1])/3;
+        newArr.push(start); newArr.push(end);
+      }
+      newArr.push(arr[arr.length-1]);
+      return newArr;
+    }
+    for (var i=0; i<4; i++) {
+      nbx = smooth(nbx); nby = smooth(nby);
+    }
+    nbx.push(brushCoords[0][brushCoords[0].length-1]);
+    nby.push(brushCoords[1][brushCoords[1].length-1]);
+    for (var i = 0; i < nbx.length; i++) {
+        var x = nbx[i], y = nby[i], X = nbx[i+1], Y = nby[i+1];
+        ctx.globalAlpha = tr1 - ShiftT;
+        ctx.beginPath();
+        ctx.lineCap = "round";
+        ctx.strokeStyle = selectedColor;
+        ctx.lineWidth = size;
+        ctx.moveTo(x,y);
+        ctx.lineTo(X, Y);
+        ctx.stroke();
+        ctx.closePath();
     }
   }
   brushCoords = [[],[]];
@@ -707,33 +748,7 @@ function applyFilter(context, mode, power=undefined) {
     }
   }
   else if (mode == -1) {
-    function median(values){
-      if(values.length ===0) return 0;
-      values.sort(function(a,b){
-        return a-b;
-      });
-      var half = Math.floor(values.length / 2);
-      if (values.length % 2) return values[half];
-      return (values[half - 1] + values[half]) / 2.0;
-    }
-    var med = d.slice();
-    for (var kk=0; kk<3; kk++) {
-      for (var y=1; y<main_y-1; y++) {
-        for (var x=1; x<main_x-1; x++) {
-          var arr = [ med[4*(main_x*y+x)+0], med[4*(main_x*(y+1)+x)+0], med[4*(main_x*y+x+1)+0], med[4*(main_x*(y-1)+x)+0], med[4*(main_x*y+x-1)+0], med[4*(main_x*(y-1)+x-1)+0], med[4*(main_x*(y-1)+x+1)+0], med[4*(main_x*(y+1)+x-1)+0], med[4*(main_x*(y+1)+x+1)+0] ];
-          med[4*(main_x*y+x)+0] = median(arr);
-          arr = [ med[4*(main_x*y+x)+1], med[4*(main_x*(y+1)+x)+1], med[4*(main_x*y+x+1)+1], med[4*(main_x*(y-1)+x)+1], med[4*(main_x*y+x-1)+1], med[4*(main_x*(y-1)+x-1)+1], med[4*(main_x*(y-1)+x+1)+1], med[4*(main_x*(y+1)+x-1)+1], med[4*(main_x*(y+1)+x+1)+1] ];
-          med[4*(main_x*y+x)+1] = median(arr);
-          arr = [ med[4*(main_x*y+x)+2], med[4*(main_x*(y+1)+x)+2], med[4*(main_x*y+x+1)+2], med[4*(main_x*(y-1)+x)+2], med[4*(main_x*y+x-1)+2], med[4*(main_x*(y-1)+x-1)+2], med[4*(main_x*(y-1)+x+1)+2], med[4*(main_x*(y+1)+x-1)+2], med[4*(main_x*(y+1)+x+1)+2] ];
-          med[4*(main_x*y+x)+2] = median(arr);
-        }
-      }
-    }
-    for (var i=0; i < d.length; i+= 4) {
-      //d[i] = d[i] - med[i]; d[i+1] = d[i+1] - med[i+1]; d[i+2] = d[i+2] - med[i+2];
-      //d[i] = med[i]; d[i+1] = med[i+1]; d[i+2] = med[i+2];
-      d[i] = d[i] + (d[i] - med[i])*power; d[i+1] = d[i+1] + (d[i+1] - med[i+1])*power; d[i+2] = d[i+2] + (d[i+2] - med[i+2])*power;
-    }
+
   }
   else if (mode == 6) {
     for (var i = 0; i < d.length; i += 4) {
@@ -763,6 +778,51 @@ function applyFilter(context, mode, power=undefined) {
   c.clearRect(0,0,context.width,context.height);
   c.putImageData(data,0,0);
 }
+
+function applySharpness(context, mode, power, radius) {
+  var c = context.getContext('2d');
+  if (context == canvas) {
+    ctx.globalAlpha = tr1; un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
+  } else if (context == getNode("filterPreview")) c.putImageData(tempData,0,0);
+  var data = c.getImageData(0,0,context.width,context.height);
+  var d = data.data;
+  var med;
+  if (mode == 0) { //Медиана
+    function median(values){
+      if(values.length ===0) return 0;
+      values.sort(function(a,b){
+        return a-b;
+      });
+      var half = Math.floor(values.length / 2);
+      if (values.length % 2) return values[half];
+      return (values[half - 1] + values[half]) / 2.0;
+    }
+    med = d.slice();
+    for (var kk=0; kk<3; kk++) {
+      for (var y=1; y<main_y-1; y++) {
+        for (var x=1; x<main_x-1; x++) {
+          var arr = [ med[4*(main_x*y+x)+0], med[4*(main_x*(y+1)+x)+0], med[4*(main_x*y+x+1)+0], med[4*(main_x*(y-1)+x)+0], med[4*(main_x*y+x-1)+0], med[4*(main_x*(y-1)+x-1)+0], med[4*(main_x*(y-1)+x+1)+0], med[4*(main_x*(y+1)+x-1)+0], med[4*(main_x*(y+1)+x+1)+0] ];
+          med[4*(main_x*y+x)+0] = median(arr);
+          arr = [ med[4*(main_x*y+x)+1], med[4*(main_x*(y+1)+x)+1], med[4*(main_x*y+x+1)+1], med[4*(main_x*(y-1)+x)+1], med[4*(main_x*y+x-1)+1], med[4*(main_x*(y-1)+x-1)+1], med[4*(main_x*(y-1)+x+1)+1], med[4*(main_x*(y+1)+x-1)+1], med[4*(main_x*(y+1)+x+1)+1] ];
+          med[4*(main_x*y+x)+1] = median(arr);
+          arr = [ med[4*(main_x*y+x)+2], med[4*(main_x*(y+1)+x)+2], med[4*(main_x*y+x+1)+2], med[4*(main_x*(y-1)+x)+2], med[4*(main_x*y+x-1)+2], med[4*(main_x*(y-1)+x-1)+2], med[4*(main_x*(y-1)+x+1)+2], med[4*(main_x*(y+1)+x-1)+2], med[4*(main_x*(y+1)+x+1)+2] ];
+          med[4*(main_x*y+x)+2] = median(arr);
+        }
+      }
+    }
+  }
+  else if (mode == 1) {//По рамке
+    var medD = ctx.getImageData(0,0,main_x,main_y);
+    StackBlur.imageDataRGB(medD, 0,0,main_x,main_y,10);
+    med = medD.data;
+  }
+  for (var i=0; i < d.length; i+= 4) {
+    d[i] = d[i] + (d[i] - med[i])*power; d[i+1] = d[i+1] + (d[i+1] - med[i+1])*power; d[i+2] = d[i+2] + (d[i+2] - med[i+2])*power;
+  }
+  c.clearRect(0,0,context.width,context.height);
+  c.putImageData(data,0,0);
+}
+
 
 function updateCanvasPreview() {
   var w = parseInt(getNode("canvasWidth").value), h = parseInt(getNode("canvasHeight").value), W, H;
@@ -981,6 +1041,7 @@ function generateHistogram() {
   var canv = getNode("histogramPreview");
   var canvx = canv.getContext('2d');
   canv.width = 512; canv.height = 512;
+  canvx.globalCompositeOperation = 'screen';
   canvx.translate(0,canv.height);
   canvx.lineWidth = 2;
   var data = ctx.getImageData(0,0,main_x,main_y);
@@ -1200,14 +1261,16 @@ function setSelection(c) {
 }
 
 function selectionButtons(btn, bl) {
-  if (Selection.creatingType == btn) {resetInstrument(); return;}
-  changeInst(bl); Selection.creatingType = btn;
-  instrument = btn+7;
-  updateCursor(6);
-  if (Selection.btns)
+  if (!adding) {
+    if (Selection.creatingType == btn) {resetInstrument(); return;}
+    changeInst(bl); Selection.creatingType = btn;
+    instrument = btn+7;
+    updateCursor(6);
+    if (Selection.btns)
     Array.prototype.forEach.call(document.getElementsByClassName("selButton"), (block) => {
       block.classList.add("visible");
     });
+  }
 }
 
 function removeSelection() {
@@ -1394,15 +1457,13 @@ Array.prototype.forEach.call([getNode('copySel'), getNode('cutSel')], function(e
       if (!(instrument>2 && instrument<6))ctx.globalAlpha = tr1;
       if (instrument != 1) ctx.drawImage(un1,0,0); else {
         if (!getNode("penType").selectedIndex) ctx.drawImage(un1,0,0);
+        else penBrush(getNode("penType").selectedIndex);
       }
       undo.clearRect(0,0,main_x,main_y);
     }
     if (Selection.creating) {
       Selection.creating = 0;
       setSelection(ctx);
-    }
-    if (instrument == 1) {
-      if (getNode("penType").selectedIndex) {penBrush(getNode("penType").selectedIndex);}
     }
     if (adding == 1 || adding == 3) {InImg.top = getNode("image_border").offsetTop; InImg.left = getNode("image_border").offsetLeft;
     InImg.height = getNode("image_border").offsetHeight; InImg.width = getNode("image_border").offsetWidth;}
@@ -1464,7 +1525,7 @@ $('#brushButton').click(function(){
   if (!adding && !correctingBool) {
     changeInst(this); instrument=1;
     updateCursor(1);
-    instBlock.innerHTML = '<span class="flexed" style="color: white; height: 100%; margin: 0px 15px;">Размер пера: </span><div class="flexed" id="brush-size"><span style="text-align: center; width: 100%;">'+size+'px</span><div class="slider flexed" id="size_slider"><div style="position: relative; width: 100%;"><div class="slider_button" style="left:' + (size-10) + 'px;"></div> <div class="slider_line"><div style="width:'+ size +'px;"></div></div></div></div></div><select id="penType" style="margin:0px 10px;"><option>Обычное перо</option>  <option>Тонкие края</option>  <option>Карандаш</option></select>';
+    instBlock.innerHTML = '<span class="flexed" style="color: white; height: 100%; margin: 0px 15px;">Размер пера: </span><div class="flexed" id="brush-size"><span style="text-align: center; width: 100%;">'+size+'px</span><div class="slider flexed" id="size_slider"><div style="position: relative; width: 100%;"><div class="slider_button" style="left:' + (size-10) + 'px;"></div> <div class="slider_line"><div style="width:'+ size +'px;"></div></div></div></div></div><select id="penType" style="margin:0px 10px;"><option>Обычное перо</option>  <option>Тонкие края</option>  <option>Карандаш</option>  <option>Плавная линия</option></select>';
   }
 });
 
@@ -1699,6 +1760,7 @@ $(document).on('click', ".imgCancel", function(){
 $(document).on('click', ".imgApply", function(){
   un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
   ctx.globalAlpha = 1;
+  ctx.imageSmoothingEnabled = true;
   if (adding == 1) {
     ctx.save();
     ctx.translate(InImg.left+InImg.width/2, InImg.top+InImg.height/2);
@@ -1769,6 +1831,7 @@ $(document).on('click', ".imgApply", function(){
   if (!correctingBool) {var blocks = document.getElementsByClassName("button");
                         for (var i=0; i<blocks.length; i++) blocks[i].style.color = "";}
   adding = 0;
+  ctx.imageSmoothingEnabled = false;
 });
 
 $("#textButton").click(function(){
@@ -1921,7 +1984,7 @@ $('#applyFilter').click(function(){
 $('#applySharpness').click(function(){
   var pow = getNode("sharpInput").value / 100;
   if (pow < 0 || pow > 5) pow = 0.5;
-  applyFilter(canvas, -1, pow);
+  applySharpness(canvas, 0, pow, 0);
 });
 
 $("#downloadBtn").click(function(){
