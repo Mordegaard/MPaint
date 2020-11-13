@@ -76,7 +76,8 @@
         <div class="h-line"></div>
         <span class="title">Усиление резкости</span>
         <div class="flexed">
-          <input id="sharpInput" class="borderedInput" type="number" min=0 max=500 placeholder="0-500"/><div class="btn flexed" id="applySharpness" style="font-size: 0.9em; width: 50%;">Применить</div>
+          <input id="sharpInput" style="width: 40%;" class="borderedInput" type="number" min=0 max=500 placeholder="0-500"/>
+          <div class="btn flexed" id="applySharpness" style="font-size: 0.9em; width: 50%;">Применить</div>
         </div>
         <div class="h-line"></div>
         <span class="title">Фильтры</span>
@@ -233,29 +234,41 @@
         <div id="filters_container" class="flexed">
           <h3>Фильтры</h3>
           <div class="filters_in flexed">
-            -<div class="filters_table flexed">
+            <div class="filters_table flexed">
               <div class="filters_row flexed">
                 <div class="filter flexed" id="filter0"><div></div><span>Без фильтров</span></div>
                 <div class="filter flexed" id="filter1"><div></div><span>Янтарь</span></div>
                 <div class="filter flexed" id="filter2"><div></div><span>Мрак</span></div>
               </div>
               <div class="filters_row flexed">
-                <div class="filter flexed" id="filter4"><div></div><span>Ясность</span></div>
-                <div class="filter flexed" id="filter5"><div></div><span>Холод</span></div>
-                <div class="filter flexed" id="filter7"><div></div><span>Мечта</span></div>
+                <div class="filter flexed" id="filter3"><div></div><span>Ясность</span></div>
+                <div class="filter flexed" id="filter4"><div></div><span>Холод</span></div>
+                <div class="filter flexed" id="filter5"><div></div><span>Мечта</span></div>
               </div>
               <div class="filters_row flexed">
-                <div class="filter flexed" id="filter3"><div></div><span>Только красный</span></div>
-                <div class="filter flexed" id="filter6"><div></div><span>Негатив</span></div>
+                <div class="filter flexed" id="filter6"><div></div><span>Сахарная вата</span></div>
+                <div class="filter flexed" id="filter7"><div></div><span>Лоза</span></div>
+                <div class="filter flexed" id="filter8"><div></div><span>Ультрафиолет</span></div>
+              </div>
+              <div class="filters_row flexed">
+                <div class="filter flexed" id="filter9"><div></div><span>Только красный</span></div>
+                <div class="filter flexed" id="filter10"><div></div><span>Чернила</span></div>
+                <div class="filter flexed" id="filter11"><div></div><span>Негатив</span></div>
               </div>
             </div>
             <div class="filters_preview flexed"><canvas id="filterPreview"></canvas></div>
           </div>
-          <div class="btn" id="applyFilter">Применить фильтр</div>
+          <div class="flexed" style="width: 100%">
+            <input type="range" id="filterPower" min="0" max="100" value="100">
+            <div class="btn" id="applyFilter">Применить фильтр</div>
+          </div>
         </div>
         <div id="download_container" class="flexed">
           <h3>Скачать изображение</h3>
-          <label style="width: 100%;">Название файла:<input id="downloadName" type="text" placeholder="mordegaard-paint"/></label>
+          <label class="flexed downloadName">Название файла:
+            <input id="downloadName" type="text" placeholder="mordegaard-paint"/>
+            <span id="fileFormat">.png</span>
+          </label>
           <div class="quality_slider flexed">
             <span class="tips left">Худшее<br />качество</span>
             <span class="tips center">Среднее<br />качество</span>
@@ -263,11 +276,11 @@
             <input type="range" id="downloadQuality" min="0" max="10">
           </div>
           <div class="format flexed" style="margin: 4px 0px;">
-            <div><input type="radio" checked="" name="format" class="checker" id="png"/><label for="png" class="checker">png</label></div>
-            <div><input type="radio" name="format" class="checker" id="jpg"/><label for="jpg" class="checker">jpg</label></div>
-            <div><input type="radio" name="format" class="checker" id="webp"/><label for="webp" class="checker">webp</label></div>
+            <div><input type="radio" checked="" name="format" class="checker" value="png" id="png"/><label for="png" class="checker">png</label></div>
+            <div><input type="radio" name="format" class="checker" value="jpg" id="jpg"/><label for="jpg" class="checker">jpg</label></div>
+            <div><input type="radio" name="format" class="checker" value="webp" id="webp"/><label for="webp" class="checker">webp</label></div>
           </div>
-          <div class="btn" id="downloadBtn">Скачать</div>
+          <div class="flexed"><span id="fileSize"></span><div class="btn" id="downloadBtn">Скачать</div></div>
         </div>
         <div id="blur_container" class="flexed">
           <h3>Галерея размытий</h3>
