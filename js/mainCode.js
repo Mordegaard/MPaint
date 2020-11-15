@@ -419,7 +419,7 @@ function fill() {
 }
   var matchColor = getCol(x2,y2);
   if (JSON.stringify(matchColor) == JSON.stringify([red1,green1,blue1,matchColor[3]])) return;
-  if (x2 < 0 || x2 > wi || y2 < 0 || y2 > he) {console.log("yes"); return;}
+  if (x2 < 0 || x2 > wi || y2 < 0 || y2 > he)  return;
   if (matchColor.compareCols([red1,green1,blue1,matchColor[3]])) depth = 0;
   function checkVert(x,y) {
     var left=false,right=false;
@@ -1295,7 +1295,6 @@ function getDownloadBase64() {
       else if (getNode("webp").checked) {mm="image/webp";}
   var q = getNode("downloadQuality").value / 10;
   base64 = getNode('dl_canvas').toDataURL(mm, q);
-  console.log(base64);
   var length = base64.length - 'data:image/png;base64,'.length;
   var sizeInBytes = Math.round(4 * Math.ceil((length / 3))*0.5624896334383812);
   var step = "B";
@@ -1526,9 +1525,7 @@ Array.prototype.forEach.call([getNode('copySel'), getNode('cutSel')], function(e
   });
 
 $('#clearButton').click(function(){
-  console.log(1)
   if (!adding) {
-    console.log(2)
     ctx.drawImage(un1, 0, 0); un2.getContext('2d').clearRect(0, 0, main_x, main_y);
     un2.getContext('2d').drawImage(canvas, 0, 0);
     ctx.clearRect(0, 0, main_x, main_y);   undo.clearRect(0, 0, main_x, main_y);
@@ -1880,7 +1877,6 @@ $("#textButton").click(function(){
     getNode("text_border").style.display = "block";
     InImg.left = (main_x-getNode("text_border").offsetWidth)/2;
     InImg.top = (main_y-getNode("text_border").offsetHeight)/2;
-    console.log(getNode("text_border").offsetWidth, getNode("text_border").offsetHeight);
     InImg.angle = 0;
     $("#text_border").css({
       "top":InImg.top+'px',
