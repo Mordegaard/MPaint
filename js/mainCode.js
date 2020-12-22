@@ -11,7 +11,7 @@ var InImg = {
   textSize: 30, textFont: 0, textStroke: false, textBold: false, textItalic: false,
 }
 var Selection = {
-  top: 0, left: 0, width: 0, height: 0, points: [], creating: 0, creatingType: 0, btns: false,
+  top: 0, left: 0, width: 0, height: 0, points: [], creating: 0, creatingType: 0, btns: false, cut: false,
 }
 var select, sel;
 
@@ -36,6 +36,7 @@ var colCorrect = [0,0,0,0,0], tempData;
 var circle = null;
 var cx = [0,256], cy= [256,0], ck = [], cxr = [0,256], cyr = [256,0], ckr = [], cxg = [0,256], cyg = [256,0], ckg = [], cxb = [0,256], cyb = [256,0], ckb = [];
 var valsCW = new Uint8ClampedArray(256), valsCR = new Uint8ClampedArray(256), valsCG = [], valsCB = new Uint8ClampedArray(256);
+var base64 = "";
 size = 2; ctxX=0; ctxY=0;
 hue = 0; saturation = 100; value = 100; transparency = 1; tr1 = transparency; tr11 = transparency; tr2 = tr1;
 red1 = 255; green1 = 0; blue1 = 0;
@@ -46,9 +47,20 @@ selectedColor2 = '#000000';
 $('#l1').css('background','#348bee');
 bg.fillStyle = bgColor; bg.fillRect(0,0,main_x,main_y);
 ctx.imageSmoothingEnabled = false;
+bg.imageSmoothingEnabled = true;
 
 function getNode(node) {
   return document.getElementById(node);
+}
+
+function median(values){
+  if(values.length ===0) return 0;
+  values.sort(function(a,b){
+    return a-b;
+  });
+  var half = Math.floor(values.length / 2);
+  if (values.length % 2) return values[half];
+  return (values[half - 1] + values[half]) / 2.0;
 }
 
 function getAngle(x1,y1,x2,y2) {
@@ -407,7 +419,7 @@ function fill() {
 }
   var matchColor = getCol(x2,y2);
   if (JSON.stringify(matchColor) == JSON.stringify([red1,green1,blue1,matchColor[3]])) return;
-  if (x2 < 0 || x2 > wi || y2 < 0 || y2 > he) {console.log("yes"); return;}
+  if (x2 < 0 || x2 > wi || y2 < 0 || y2 > he)  return;
   if (matchColor.compareCols([red1,green1,blue1,matchColor[3]])) depth = 0;
   function checkVert(x,y) {
     var left=false,right=false;
@@ -450,11 +462,6 @@ function addImage(url) {
       adding = 1;
       resetInstrument();
       instBlock.innerHTML = '<div class="imgApply flexed"><span></span></div><div class="imgCancel flexed">×</div>';
-      InImg.top = 0;
-      InImg.left = 0;
-      InImg.angle = 0;
-      document.getElementsByClassName("overlay_container")[0].classList.remove("visible");
-      getNode("full_img_border").style.transform = '';
       var w = addImg.width; var h = addImg.height;
       if (h > main_y) {
         w *= main_y / h; h = main_y;
@@ -464,12 +471,17 @@ function addImage(url) {
       }
       InImg.width = w; InImg.height = h;
       InImg.prop = h / w;
+      InImg.top = (main_y - h)/2;
+      InImg.left = (main_x - w)/2;
+      InImg.angle = 0;
+      document.getElementsByClassName("overlay_container")[0].classList.remove("visible");
+      getNode("full_img_border").style.transform = '';
       $("#image_border").css({
         "display":"block",
         "width":w+"px",
         "height":h+"px",
-        "top":"0",
-        "left":"0",
+        "top":InImg.top,
+        "left":InImg.left,
         "backdrop-filter":"",
       });
       $("#addedImage").css({
@@ -478,8 +490,8 @@ function addImage(url) {
         "height":(h)+"px",
         "display":"block",
         "transform":"",
-        "top":"0",
-        "left":"0"
+        "top":InImg.top,
+        "left":InImg.left
       });
       return;
     }
@@ -525,6 +537,47 @@ function penBrush(mode) {
       ctx.lineTo(X, Y);
       ctx.stroke();
       ctx.closePath();
+    }
+  } else if (mode == 3) {
+    var nbx = [], nby = [];
+    var spx = [], spy = [];
+    for (var i=1; i<brushCoords[0].length; i++) {
+      spx.push(Math.abs(brushCoords[0][i] - brushCoords[0][i-1]));
+      spy.push(Math.abs(brushCoords[1][i] - brushCoords[1][i-1]));
+    }
+    var speed = (median(spx) + median(spy)) / 3;
+    if (speed > 8) speed = 8;
+    speed = Math.round(9-speed);
+    for (var i=0; i<brushCoords[0].length; i+=speed) {
+      nbx.push(brushCoords[0][i]);
+      nby.push(brushCoords[1][i]);
+    }
+    nbx.push(brushCoords[0][brushCoords[0].length-1]);
+    nby.push(brushCoords[1][brushCoords[1].length-1]);
+    function smooth(arr) {
+      var newArr = [arr[0]];
+      for (var i=1; i<arr.length; i++) {
+        var start = arr[i-1] + (arr[i]-arr[i-1])/3;
+        var end = arr[i] - (arr[i]-arr[i-1])/3;
+        newArr.push(start); newArr.push(end);
+      }
+      newArr.push(arr[arr.length-1]);
+      return newArr;
+    }
+    for (var i=0; i<4; i++) {
+      nbx = smooth(nbx); nby = smooth(nby);
+    }
+    for (var i = 0; i < nbx.length; i++) {
+        var x = nbx[i], y = nby[i], X = nbx[i+1], Y = nby[i+1];
+        ctx.globalAlpha = tr1 - ShiftT;
+        ctx.beginPath();
+        ctx.lineCap = "round";
+        ctx.strokeStyle = selectedColor;
+        ctx.lineWidth = size;
+        ctx.moveTo(x,y);
+        ctx.lineTo(X, Y);
+        ctx.stroke();
+        ctx.closePath();
     }
   }
   brushCoords = [[],[]];
@@ -602,10 +655,10 @@ function applyColorCorrection() {
     var blue = d[i + 2];
     var saturatedRed = (az*red + bz*green + cz*blue);
     var saturatedGreen = (dz*red + ez*green + fz*blue);
-    var saturateddBlue = (gz*red + hz*green + iz*blue);
+    var saturatedBlue = (gz*red + hz*green + iz*blue);
     d[i] = saturatedRed;
     d[i + 1] = saturatedGreen;
-    d[i + 2] = saturateddBlue;
+    d[i + 2] = saturatedBlue;
   }
   //СБРОС НАСТРОЕК//
   colCorrect = [0,0,0,0];
@@ -626,14 +679,16 @@ function applyColorCorrection() {
   canvas.style.filter = "";
 }
 
-function applyFilter(context, mode, power=undefined) {
+function applyFilter(context, mode) {
+  var power =  getNode("filterPower").value / 100;
   var c = context.getContext('2d');
   if (context == canvas) {
     ctx.globalAlpha = tr1; un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
   } else if (context == getNode("filterPreview")) c.putImageData(tempData,0,0);
   var data = c.getImageData(0,0,context.width,context.height);
   var d = data.data;
-  if (mode == 1) {
+  var dOriginal = d.slice();
+  if (mode == 1) { //Янтарь
     for (var i = 0; i < d.length; i += 4) {
       var rgb = [d[i+0], d[i+1], d[i+2]]
       var hsv = rgb_to_hsv(rgb[0],rgb[1],rgb[2]);
@@ -645,7 +700,7 @@ function applyFilter(context, mode, power=undefined) {
         v = 0.33*2-v; d[i] += 100*v; d[i+1] += 10*v; d[i+2] += 50*v;
       } else {d[i] += 80*v; d[i+1] += 20*v;}
     }
-  } else if (mode == 2) {
+  } else if (mode == 2) { // Мрак
     for (var i = 0; i < d.length; i += 4) {
       var rgb = [d[i+0], d[i+1], d[i+2]]
       var hsv = rgb_to_hsv(rgb[0],rgb[1],rgb[2]);
@@ -657,7 +712,7 @@ function applyFilter(context, mode, power=undefined) {
       }
       d[i] -= 10; d[i+2] += 15;
     }
-  } else if (mode == 3) {
+  } else if (mode == 9) { //только красный
     for (var i = 0; i < d.length; i += 4) {
       var rgb = [d[i+0], d[i+1], d[i+2]]
       var hsv = rgb_to_hsv(rgb[0],rgb[1],rgb[2]);
@@ -672,13 +727,13 @@ function applyFilter(context, mode, power=undefined) {
         var ez = 1*luG, fz = 1*luB, gz = 1*luR, hz = 1*luG, iz = 1*luB;
         var saturatedRed = (az*d[i] + bz*d[i+1] + cz*d[i+2]);
         var saturatedGreen = (dz*d[i] + ez*d[i+1] + fz*d[i+2]);
-        var saturateddBlue = (gz*d[i] + hz*d[i+1] + iz*d[i+2]);
+        var saturatedBlue = (gz*d[i] + hz*d[i+1] + iz*d[i+2]);
         d[i] = saturatedRed * Shift + d[i] * (1 - Shift);
         d[i+1] = saturatedGreen * Shift + d[i+1] * (1 - Shift);;
-        d[i+2] = saturateddBlue * Shift + d[i+2] * (1 - Shift);;
+        d[i+2] = saturatedBlue * Shift + d[i+2] * (1 - Shift);;
       }
     }
-  } else if (mode == 4) {
+  } else if (mode == 3) {
     var contrast = 0.9;
     var intercept = 128 * (1 - contrast);
     for (var i = 0; i < d.length; i += 4) {
@@ -693,7 +748,7 @@ function applyFilter(context, mode, power=undefined) {
       d[i+2] = d[i+2] * contrast * 1.1 + intercept;
     }
   }
-  else if (mode == 5) {
+  else if (mode == 4) {
     for (var i = 0; i < d.length; i += 4) {
       var hsv = rgb_to_hsv(d[i], d[i+1], d[i+2]);
       if (hsv[2] <= 0.8) {
@@ -707,16 +762,123 @@ function applyFilter(context, mode, power=undefined) {
     }
   }
   else if (mode == -1) {
-    function median(values){
-      if(values.length ===0) return 0;
-      values.sort(function(a,b){
-        return a-b;
-      });
-      var half = Math.floor(values.length / 2);
-      if (values.length % 2) return values[half];
-      return (values[half - 1] + values[half]) / 2.0;
+
+  }
+  else if (mode == 11) {
+    for (var i = 0; i < d.length; i += 4) {
+      d[i] = 255-d[i];
+      d[i+1] = 255-d[i+1];
+      d[i+2] = 255-d[i+2];
     }
-    var med = d.slice();
+  }
+  else if (mode == 5) {
+    for (var i = 0; i < d.length; i += 4) {
+      var hsv = rgb_to_hsv(d[i], d[i+1], d[i+2]);
+      if (hsv[2] > 0.5) {
+        d[i] = d[i] + 120 - 120*(1.5-hsv[2]);
+        d[i+1] = d[i+1] + 30 - 30*(1.5-hsv[2]);
+      } else {
+        d[i] = d[i]-20+20*(hsv[2]+0.5);
+        d[i+1] = d[i+1]-20+20*(hsv[2]+0.5);
+        d[i+2] = d[i+2]*3/(1+hsv[2]*4);
+      }
+    }
+  }
+  else if (mode == 6) { //Сахарная вата
+    for (var i = 0; i < d.length; i += 4) {
+      var contrast = 0.8;
+      var intercept = 128 * (1 - contrast);
+      d[i] = (d[i] * contrast * 1.1 + intercept) + 15;
+      d[i+1] = (d[i+1] * contrast * 0.9 + intercept);
+      d[i+2] = (d[i+2] * contrast + intercept) + 10;
+    }
+  }
+  else if (mode == 7) { //Лоза
+    var sv = 0.75;
+    var luR = 0.3086, luG = 0.6094, luB = 0.0820;
+    var az = (1 - sv)*luR + sv, bz = (1 - sv)*luG, cz = (1 - sv)*luB;
+    var dz = (1 - sv)*luR, ez = (1 - sv)*luG + sv, fz = (1 - sv)*luB;
+    var gz = (1 - sv)*luR, hz = (1 - sv)*luG, iz = (1 - sv)*luB + sv;
+    for (var i = 0; i < d.length; i += 4) {
+      var contrast = 1.15;
+      var intercept = 128 * (1 - contrast);
+      var saturatedRed = (az*d[i] + bz*d[i+1] + cz*d[i+2]);
+      var saturatedGreen = (dz*d[i] + ez*d[i+1] + fz*d[i+2]);
+      var saturatedBlue = (gz*d[i] + hz*d[i+1] + iz*d[i+2]);
+      d[i] = saturatedRed * contrast + intercept - 5;
+      d[i+1] = saturatedGreen * contrast + intercept;
+      d[i+2] = saturatedBlue * contrast + intercept + 5;
+      var hsv = rgb_to_hsv(d[i], d[i+1], d[i+2]);
+      if (hsv[2] < 0.5) {
+        d[i] = d[i]-25+25*(hsv[2]+0.5);
+        d[i+1] = d[i+1]+60-60*(hsv[2]+0.5);
+        d[i+2] = d[i+2]+50-50*(hsv[2]+0.5);
+      } else {
+        d[i] = d[i]-40+40*(1.5-hsv[2]);
+        d[i+1] = d[i+1]+60-60*(1.5-hsv[2]);
+        d[i+2] = d[i+2]+50-50*(1.5-hsv[2]);
+      }
+    }
+  }
+  else if (mode == 8) { //Ультрафиолет
+    var contrast = 1.25;
+    var intercept = 128 * (1 - contrast);
+    for (var i = 0; i < d.length; i += 4) {
+      d[i] = d[i] * contrast + intercept - 22;
+      d[i+1] = d[i+1] * contrast + intercept - 22;
+      d[i+2] = d[i+2] * contrast + intercept - 22;
+      var hsv = rgb_to_hsv(d[i],d[i+1],d[i+2]);
+      var rgb = hsv_to_rgb(0,0,hsv[2]*100);
+      d[i] = rgb[0]+30; d[i+1] = rgb[1]-5; d[i+2] = rgb[2]+30;
+      if (hsv[2] < 0.5) {
+        d[i] = d[i]-80+80*(hsv[2]+0.5);
+        d[i+1] = d[i+1]-40+40*(hsv[2]+0.5);
+        d[i+2] = d[i+2]+40-40*(hsv[2]+0.5);
+      } else {
+        d[i+2] = d[i+2]-50+50*(hsv[2]+0.5);
+        d[i] = d[i]+50-50*(hsv[2]+0.5);
+      }
+    }
+  }
+  else if (mode == 10) { //Чернила
+    var contrast = 1.5;
+    var intercept = 128 * (1 - contrast);
+    for (var i = 0; i < d.length; i += 4) {
+      d[i] = d[i] * contrast + intercept - 22;
+      d[i+1] = d[i+1] * contrast + intercept - 22;
+      d[i+2] = d[i+2] * contrast + intercept - 22;
+      var hsv = rgb_to_hsv(d[i],d[i+1],d[i+2]);
+      var rgb = hsv_to_rgb(0,0,hsv[2]*100);
+      d[i] = rgb[0]; d[i+1] = rgb[1]; d[i+2] = rgb[2];
+      if (hsv[2] < 0.5) {
+        d[i] = d[i]+60-60*(hsv[2]+0.5);
+        d[i+1] = d[i]; d[i+2] = d[i];
+      } else {
+        d[i] = d[i]-80+80*(1.5-hsv[2]);
+        d[i+1] = d[i]; d[i+2] = d[i];
+      }
+    }
+  }
+  for (var i = 0; i < d.length; i += 4) {
+    d[i] = d[i] * power + dOriginal[i] * (1-power);
+    d[i+1] = d[i+1] * power + dOriginal[i+1] * (1-power);
+    d[i+2] = d[i+2] * power + dOriginal[i+2] * (1-power);
+  }
+  c.clearRect(0,0,context.width,context.height);
+  c.putImageData(data,0,0);
+  return;
+}
+
+function applySharpness(context, mode, power, radius) {
+  var c = context.getContext('2d');
+  if (context == canvas) {
+    ctx.globalAlpha = tr1; un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
+  } else if (context == getNode("filterPreview")) c.putImageData(tempData,0,0);
+  var data = c.getImageData(0,0,context.width,context.height);
+  var d = data.data;
+  var med;
+  if (mode == 0) { //Медиана
+    med = d.slice();
     for (var kk=0; kk<3; kk++) {
       for (var y=1; y<main_y-1; y++) {
         for (var x=1; x<main_x-1; x++) {
@@ -729,40 +891,19 @@ function applyFilter(context, mode, power=undefined) {
         }
       }
     }
-    for (var i=0; i < d.length; i+= 4) {
-      //d[i] = d[i] - med[i]; d[i+1] = d[i+1] - med[i+1]; d[i+2] = d[i+2] - med[i+2];
-      //d[i] = med[i]; d[i+1] = med[i+1]; d[i+2] = med[i+2];
-      d[i] = d[i] + (d[i] - med[i])*power; d[i+1] = d[i+1] + (d[i+1] - med[i+1])*power; d[i+2] = d[i+2] + (d[i+2] - med[i+2])*power;
-    }
   }
-  else if (mode == 6) {
-    for (var i = 0; i < d.length; i += 4) {
-      d[i] = 255-d[i];
-      d[i+1] = 255-d[i+1];
-      d[i+2] = 255-d[i+2];
-    }
+  else if (mode == 1) {//По рамке
+    var medD = ctx.getImageData(0,0,main_x,main_y);
+    StackBlur.imageDataRGB(medD, 0,0,main_x,main_y,10);
+    med = medD.data;
   }
-  else if (mode == 7) {
-    for (var i = 0; i < d.length; i += 4) {
-      var hsv = rgb_to_hsv(d[i], d[i+1], d[i+2]);
-      //d[i] = d[i]*1.3 + 15;
-      //d[i+1] = d[i+1] * 1.2;
-      //d[i+2] = d[i+2] * 1.3;
-      if (hsv[2] > 0.5) {
-        /*d[i] = d[i] * ( 1.75 - 0.75*(1.5-hsv[2]) );
-        d[i+1] = d[i+1] * ( 1.2 - 0.2*(1.5-hsv[2]) );*/
-        d[i] = d[i] + 120 - 120*(1.5-hsv[2]);
-        d[i+1] = d[i+1] + 30 - 30*(1.5-hsv[2]);
-      } else {
-        d[i] = d[i]-20+20*(hsv[2]+0.5);
-        d[i+1] = d[i+1]-20+20*(hsv[2]+0.5);
-        d[i+2] = d[i+2]*3/(1+hsv[2]*4);
-      }
-    }
+  for (var i=0; i < d.length; i+= 4) {
+    d[i] = d[i] + (d[i] - med[i])*power; d[i+1] = d[i+1] + (d[i+1] - med[i+1])*power; d[i+2] = d[i+2] + (d[i+2] - med[i+2])*power;
   }
   c.clearRect(0,0,context.width,context.height);
   c.putImageData(data,0,0);
 }
+
 
 function updateCanvasPreview() {
   var w = parseInt(getNode("canvasWidth").value), h = parseInt(getNode("canvasHeight").value), W, H;
@@ -804,96 +945,10 @@ function updateCanvas(w, h) {
   ctx.imageSmoothingEnabled = false;
 }
 
-function applyBlur(context, mode, weight) {
-  if (context == ctx) {ctx.globalAlpha = tr1; un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);}
-  var data = context.getImageData(0,0,main_x,main_y);
-  var d = data.data;
-  var clearArr = d.slice();
-  var blurredArr = [];
-  var kernel = [];
-  var ksize = weight*2+1;
-  var sigma = sigma=(ksize-1)/6;
-  for (var y=0; y<ksize; y++) {
-    kernel[y] = [];
-    for (var x=0; x<ksize; x++) {
-      var X = -weight+x;
-      var Y = -weight+y;
-      kernel[y][x] = (1/(2*Math.PI*sigma*sigma)) * Math.exp(-(X*X+Y*Y)/(2*sigma*sigma));
-    }
+function applyBlur(canvas, mode, weight) {
+  if (mode == 0) {
+    StackBlur.canvasRGBA(canvas, 0, 0, main_x, main_y, weight);
   }
-  //console.table(kernel);
-
-  for (var y=weight; y<main_y-weight; y++) {
-    for (var x=weight; x<main_x-weight; x++) {
-      var red=0,green=0,blue=0;
-      for (var Y=-weight; Y<weight;Y++) {
-        for (var X=-weight; X<weight;X++) {
-          var chans = [clearArr[4*(main_x*(y+Y)+(x+X))+0], clearArr[4*(main_x*(y+Y)+(x+X))+1], clearArr[4*(main_x*(y+Y)+(x+X))+2]];
-          red = red + chans[0]*kernel[Y+weight][X+weight];
-          green = green + chans[1]*kernel[Y+weight][X+weight];
-          blue = blue + chans[2]*kernel[Y+weight][X+weight];
-        }
-      }
-      d[4*(main_x*(y)+(x))+0] = red; d[4*(main_x*(y)+(x))+1] = green; d[4*(main_x*(y)+(x))+2] = blue;
-    }
-  }
-
-  function vert(x) {
-    if (!x) return;
-    if (x>0)
-    for (var i = arr.length; i > main_x*4*x; i--) {
-      arr[i] = arr[i-(main_x*4*x)];
-    }
-    else
-    for (var i = 0; i < arr.length + main_x*4*x; i++) {
-      arr[i] = arr[i-(main_x*4*x)];
-    }
-  }
-  function horiz(x) {
-    if (!x) return;
-    if (x>0)
-    for (var i = 0; i < main_y; i++) {
-      for (var j = main_x-1; j > x; j--) {
-        arr[4*(main_x*i+j)+0] = arr[4*(main_x*i+j-x)+0];
-        arr[4*(main_x*i+j)+1] = arr[4*(main_x*i+j-x)+1];
-        arr[4*(main_x*i+j)+2] = arr[4*(main_x*i+j-x)+2];
-        arr[4*(main_x*i+j)+3] = arr[4*(main_x*i+j-x)+3];
-      }
-    }
-    else
-    for (var i = 0; i < main_y; i++) {
-      for (var j = 0; j < main_x+x; j++) {
-        arr[4*(main_x*i+j)+0] = arr[4*(main_x*i+j-x)+0];
-        arr[4*(main_x*i+j)+1] = arr[4*(main_x*i+j-x)+1];
-        arr[4*(main_x*i+j)+2] = arr[4*(main_x*i+j-x)+2];
-        arr[4*(main_x*i+j)+3] = arr[4*(main_x*i+j-x)+3];
-      }
-    }
-  }
-    /*for (var x=-weight; x<weight; x++) {
-      var y1 = Math.round(Math.sqrt(weight*weight - x*x));
-      var y2 = -(Math.round(Math.sqrt(weight*weight/4 - x*x)));
-      for (var y=y2; y<y1; y++) {
-        var arr = clearArr.slice();
-        horiz(x); vert(y);
-        blurredArr.push(arr);
-      }
-    }
-  var prop = 1/blurredArr.length;
-  clearArr = Array.from(clearArr);
-  for (var i = 0; i < blurredArr.length; i++) {
-    for (var j=0; j<d.length; j+=4) {
-      clearArr[j] += blurredArr[i][j];
-      clearArr[j+1] += blurredArr[i][j+1];
-      clearArr[j+2] += blurredArr[i][j+2];
-    }
-  }
-  for (var j=0; j<d.length; j+=4) {
-    d[j] = clearArr[j]*prop; d[j+1] = clearArr[j+1]*prop; d[j+2] = clearArr[j+2]*prop;
-  }*/
-
-  context.clearRect(0,0,main_x,main_y);
-  context.putImageData(data,0,0);
 }
 
 ;['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -981,6 +1036,7 @@ function generateHistogram() {
   var canv = getNode("histogramPreview");
   var canvx = canv.getContext('2d');
   canv.width = 512; canv.height = 512;
+  canvx.globalCompositeOperation = 'screen';
   canvx.translate(0,canv.height);
   canvx.lineWidth = 2;
   var data = ctx.getImageData(0,0,main_x,main_y);
@@ -1092,16 +1148,16 @@ function updateCurve(vals, color) {
   canvx.lineWidth = 2;
   canvx.stroke();
   canvx.closePath();
-  var ctx = getNode("curvesPreview").getContext('2d');
-  ctx.putImageData(tempData,0,0);
-  var data = ctx.getImageData(0,0,canvas.width,canvas.height);
+  var cx = getNode("curvesPreview").getContext('2d');
+  cx.putImageData(tempData,0,0);
+  var data = cx.getImageData(0,0,canvas.width,canvas.height);
   var d = data.data;
   for (var i=0; i<d.length; i+=4) {
     d[i] = (512 - valsCW[d[i]] - valsCR[d[i]])/2;
     d[i+1] = (512 - valsCW[d[i+1]] - valsCG[d[i+1]])/2;
     d[i+2] = (512 - valsCW[d[i+2]] - valsCB[d[i+2]])/2;
   }
-  ctx.putImageData(data,0,0);
+  cx.putImageData(data,0,0);
 }
 
 function createSelection() {
@@ -1200,14 +1256,16 @@ function setSelection(c) {
 }
 
 function selectionButtons(btn, bl) {
-  if (Selection.creatingType == btn) {resetInstrument(); return;}
-  changeInst(bl); Selection.creatingType = btn;
-  instrument = btn+7;
-  updateCursor(6);
-  if (Selection.btns)
+  if (!adding) {
+    if (Selection.creatingType == btn) {resetInstrument(); return;}
+    changeInst(bl); Selection.creatingType = btn;
+    instrument = btn+7;
+    updateCursor(6);
+    if (Selection.btns)
     Array.prototype.forEach.call(document.getElementsByClassName("selButton"), (block) => {
       block.classList.add("visible");
     });
+  }
 }
 
 function removeSelection() {
@@ -1223,6 +1281,30 @@ function removeSelection() {
 
 function infoCoords() {
   getNode("infoX").innerText = "X: " + Math.floor(ctxX/scale); getNode("infoY").innerText = "Y: " + Math.floor(ctxY/scale);
+}
+
+function getDownloadBase64() {
+  dl.clearRect(0,0,main_x,main_y);
+  dl.drawImage(getNode('bg_canvas'),0,0);
+  dl.drawImage(getNode('main_canvas'),0,0);
+  dl.globalAlpha = tr2;
+  dl.drawImage(getNode('undo_canvas1'),0,0);
+  var mm, fm;
+  if (getNode("jpg").checked) {mm="image/jpeg";}
+    else if (getNode("png").checked) {mm="image/webp";}
+      else if (getNode("webp").checked) {mm="image/webp";}
+  var q = getNode("downloadQuality").value / 10;
+  base64 = getNode('dl_canvas').toDataURL(mm, q);
+  var length = base64.length - 'data:image/png;base64,'.length;
+  var sizeInBytes = Math.round(4 * Math.ceil((length / 3))*0.5624896334383812);
+  var step = "B";
+  if (sizeInBytes > 1024) {
+    sizeInBytes = Math.round(sizeInBytes * 100 / 1024) / 100; step = "KB";
+    if (sizeInBytes > 1024) {
+      sizeInBytes = Math.round(sizeInBytes * 100 / 1024) / 100; step = "MB";
+    }
+  }
+  getNode("fileSize").innerText = '~ ' + sizeInBytes + step;
 }
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1303,12 +1385,13 @@ Array.prototype.forEach.call([getNode('copySel'), getNode('cutSel')], function(e
     }
     canvx.drawImage(canvas, -Selection.left, -Selection.top);
     var url = canv.toDataURL();
-    if (mode) {
-      ctx.clearRect(Selection.left, Selection.top, Selection.width, Selection.height);
-    }
-    removeSelection();
     addImg.src = url;
     addImage(url);
+    if (mode) {
+      ctx.clearRect(Selection.left, Selection.top, Selection.width, Selection.height);
+      Selection.cut = true;
+    }
+    removeSelection();
   });
 });
 
@@ -1394,15 +1477,13 @@ Array.prototype.forEach.call([getNode('copySel'), getNode('cutSel')], function(e
       if (!(instrument>2 && instrument<6))ctx.globalAlpha = tr1;
       if (instrument != 1) ctx.drawImage(un1,0,0); else {
         if (!getNode("penType").selectedIndex) ctx.drawImage(un1,0,0);
+        else penBrush(getNode("penType").selectedIndex);
       }
       undo.clearRect(0,0,main_x,main_y);
     }
     if (Selection.creating) {
       Selection.creating = 0;
       setSelection(ctx);
-    }
-    if (instrument == 1) {
-      if (getNode("penType").selectedIndex) {penBrush(getNode("penType").selectedIndex);}
     }
     if (adding == 1 || adding == 3) {InImg.top = getNode("image_border").offsetTop; InImg.left = getNode("image_border").offsetLeft;
     InImg.height = getNode("image_border").offsetHeight; InImg.width = getNode("image_border").offsetWidth;}
@@ -1464,7 +1545,7 @@ $('#brushButton').click(function(){
   if (!adding && !correctingBool) {
     changeInst(this); instrument=1;
     updateCursor(1);
-    instBlock.innerHTML = '<span class="flexed" style="color: white; height: 100%; margin: 0px 15px;">Размер пера: </span><div class="flexed" id="brush-size"><span style="text-align: center; width: 100%;">'+size+'px</span><div class="slider flexed" id="size_slider"><div style="position: relative; width: 100%;"><div class="slider_button" style="left:' + (size-10) + 'px;"></div> <div class="slider_line"><div style="width:'+ size +'px;"></div></div></div></div></div><select id="penType" style="margin:0px 10px;"><option>Обычное перо</option>  <option>Тонкие края</option>  <option>Карандаш</option></select>';
+    instBlock.innerHTML = '<span class="flexed" style="color: white; height: 100%; margin: 0px 15px;">Размер пера: </span><div class="flexed" id="brush-size"><span style="text-align: center; width: 100%;">'+size+'px</span><div class="slider flexed" id="size_slider"><div style="position: relative; width: 100%;"><div class="slider_button" style="left:' + (size-10) + 'px;"></div> <div class="slider_line"><div style="width:'+ size +'px;"></div></div></div></div></div><select id="penType" style="margin:0px 10px;"><option>Обычное перо</option>  <option>Тонкие края</option>  <option>Карандаш</option>  <option>Плавная линия</option></select>';
   }
 });
 
@@ -1482,7 +1563,7 @@ $('#fillButton').click(function(){
   if (!adding && !correctingBool) {
     changeInst(this); instrument=7;
     updateCursor(7);
-    instBlock.innerHTML = '<span style="margin: 0px 15px;">Допуск: </span><input type="number" min="0" max="255" id="fillWeight" class="borderedInput" placeholder="0-255"/>';
+    instBlock.innerHTML = '<span style="margin: 0px 15px;">Допуск: </span><input type="number" min="0" max="255" id="fillWeight" style="width: 55px;" class="borderedInput" placeholder="0-255"/>';
   }
 });
 
@@ -1588,8 +1669,9 @@ $('#imagePropsButton').click(function(){
 });
 
 $('.filter').click(function(){
-  var mode = this.getAttribute('id');
-  mode = parseInt(mode.slice(6, mode.length));
+  var mode = [].indexOf.call(document.getElementsByClassName("filter"), this);
+  getNode("filterPower").value = 100;
+  console.log("Selected filter index is " + mode);
   var canvx = getNode("filterPreview");
   applyFilter(canvx, mode);
   colCorrect[4] = mode;
@@ -1603,6 +1685,7 @@ $('#downloadButton').click(function(){
   toggleVisible(block);
   for (var i=0; i<overlay.length; i++) overlay[i].style.display = "none";
   getNode("download_container").style.display = "flex";
+  getDownloadBase64();
 });
 
 $(".layers_container .show-hide-btn").click(function(){
@@ -1697,8 +1780,12 @@ $(document).on('click', ".imgCancel", function(){
 });
 
 $(document).on('click', ".imgApply", function(){
-  un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
+  if (!Selection.cut) {
+    un2.getContext('2d').clearRect(0,0,main_x,main_y);
+    un2.getContext('2d').drawImage(canvas,0,0);
+  }
   ctx.globalAlpha = 1;
+  ctx.imageSmoothingEnabled = true;
   if (adding == 1) {
     ctx.save();
     ctx.translate(InImg.left+InImg.width/2, InImg.top+InImg.height/2);
@@ -1769,6 +1856,8 @@ $(document).on('click', ".imgApply", function(){
   if (!correctingBool) {var blocks = document.getElementsByClassName("button");
                         for (var i=0; i<blocks.length; i++) blocks[i].style.color = "";}
   adding = 0;
+  ctx.imageSmoothingEnabled = false;
+  Selection.cut = false;
 });
 
 $("#textButton").click(function(){
@@ -1788,7 +1877,6 @@ $("#textButton").click(function(){
     getNode("text_border").style.display = "block";
     InImg.left = (main_x-getNode("text_border").offsetWidth)/2;
     InImg.top = (main_y-getNode("text_border").offsetHeight)/2;
-    console.log(getNode("text_border").offsetWidth, getNode("text_border").offsetHeight);
     InImg.angle = 0;
     $("#text_border").css({
       "top":InImg.top+'px',
@@ -1873,7 +1961,7 @@ $('#canvasWidth, #canvasHeight').on('change', function(){
   updateCanvasPreview();
 });
 
-$('#updateCanvas').click(function(){
+getNode("updateCanvas").addEventListener("click", function(){
   var w = parseInt(getNode("canvasWidth").value), h = parseInt(getNode("canvasHeight").value);
   updateCanvas(w, h);
   var checker = getNode("pasteImg").getElementsByTagName("input")[0];
@@ -1884,7 +1972,7 @@ $('#updateCanvas').click(function(){
   toggleVisible(block);
 });
 
-$('#newCanvasButton').click(function(){
+getNode("newCanvasButton").addEventListener("click", function(){
   if (!adding) {
     var block = document.getElementsByClassName("overlay_container")[0];
     toggleVisible(block);
@@ -1895,7 +1983,7 @@ $('#newCanvasButton').click(function(){
   }
 });
 
-$("#openFiltersButton").click(function() {
+getNode("openFiltersButton").addEventListener("click", function(){
   var block = document.getElementsByClassName("overlay_container")[0];
   toggleVisible(block);
   for (var i=0; i<overlay.length; i++) overlay[i].style.display = "none";
@@ -1912,40 +2000,38 @@ $("#openFiltersButton").click(function() {
   for (var i=0; i<blocks.length; i++) blocks[i].getElementsByTagName("span")[0].style.background = "";
 });
 
-$('#applyFilter').click(function(){
+getNode("applyFilter").addEventListener("click", function(){
   applyFilter(canvas, colCorrect[4]);
   var block = document.getElementsByClassName("overlay_container")[0];
   toggleVisible(block);
 });
 
-$('#applySharpness').click(function(){
-  var pow = getNode("sharpInput").value / 100;
-  if (pow < 0 || pow > 5) pow = 0.5;
-  applyFilter(canvas, -1, pow);
+getNode("filterPower").addEventListener("change", function(){
+  var canvx = getNode("filterPreview");
+  applyFilter(canvx, colCorrect[4]);
 });
 
-$("#downloadBtn").click(function(){
-  dl.clearRect(0,0,main_x,main_y);
-  dl.drawImage(getNode('bg_canvas'),0,0);
-  dl.drawImage(getNode('main_canvas'),0,0);
-  dl.globalAlpha = tr2;
-  dl.drawImage(getNode('undo_canvas1'),0,0);
-  var mm, fm;
-  if (getNode("jpg").checked) {mm="image/jpeg"; fm="jpg"}
-    else if (getNode("png").checked) {mm="image/webp"; fm="png"}
-      else if (getNode("webp").checked) {mm="image/webp"; fm="webp"}
-  var q = getNode("downloadQuality").value / 10;
-  var dataURL = getNode('dl_canvas').toDataURL(mm, q);
+getNode("applySharpness").addEventListener("click", function(){
+  var pow = getNode("sharpInput").value / 100;
+  if (pow < 0 || pow > 5) pow = 0.5;
+  applySharpness(canvas, 0, pow, 0);
+});
+
+getNode("downloadBtn").addEventListener("click", function(){
+  var fm;
+  if (getNode("jpg").checked) {fm="jpg";}
+    else if (getNode("png").checked) {fm="png";}
+      else if (getNode("webp").checked) {fm="webp";}
   var link = document.createElement('a');
   var name = getNode("downloadName").value;
   if (!name) name = "mordegaard-paint";
   link.download = name+"."+fm;
-  link.href = dataURL;
+  link.href = base64;
   link.click();
   dl.globalAlpha = 1;
 });
 
-$("#cropButton").click(function(){
+getNode("cropButton").addEventListener("click", function(){
   if (!adding) {
     document.getElementsByClassName("imgRotate")[0].style.display = "none";
     getNode("grid").style.display = "";
@@ -2000,7 +2086,7 @@ getNode("applyBlurBtn").addEventListener('click',function(){
   ctx.globalAlpha = tr1; un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
   var weight = getNode("blurPower").value;
   toggleVisible(document.getElementsByClassName("overlay_container")[0]);
-  StackBlur.canvasRGBA(canvas, 0, 0, main_x, main_y, weight);
+  applyBlur(canvas, 0, weight);
 });
 
 getNode("openHistogramButton").addEventListener('click',function() {
@@ -2114,6 +2200,17 @@ getNode("openCurvesButton").addEventListener('click',function() {
   if (l > 1) {
     for (var i=1; i<l; i++) {block.removeChild(block.lastChild);}
   }
+});
+
+[].forEach.call(document.getElementsByName("format"), function(el, ind) {
+  el.addEventListener('click', function() {
+    getNode("fileFormat").innerText = '.' + this.value;
+    getDownloadBase64();
+  });
+});
+
+getNode("downloadQuality").addEventListener("change", function() {
+  getDownloadBase64();
 });
 
 resetInstrument();

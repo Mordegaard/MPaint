@@ -65,7 +65,7 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 #sticky-navbar {
 background-color: var(--ui-col);
 width: 100%;
-height: 40px;
+height: 38px;
 justify-content: space-between;
 z-index: 10;
 }
@@ -742,6 +742,7 @@ input[type="radio"] {
   overflow: hidden;
   padding-top: 30px;
   overflow-y: scroll;
+  scrollbar-width: thin;
   flex-direction: column;
   justify-content: flex-start;
   z-index: -1;
@@ -795,6 +796,7 @@ input[type="radio"] {
 .filter div {width: 150px; height: 150px;}
 .filter span {
   width: 100%;
+  padding: 2px 0px;
   background: #348bee;
   color: white;
   text-align: center;
@@ -802,11 +804,15 @@ input[type="radio"] {
 #filter0 div {background: 0% / cover url(https://1.bp.blogspot.com/-4X0zwU4In3g/Xwn2x10mhbI/AAAAAAAACtQ/-HnNVFjhU0M-nI45beQGjSO5l8Hxy1wAgCLcBGAsYHQ/w200-h200/July%2B10%252C%2B2020%2Bat%2B0141PM%2B%25282%2529.jpg);}
 #filter1 div {background: 0% / cover url(https://1.bp.blogspot.com/-9Fwjvmo2I0Y/XwodRXhU5TI/AAAAAAAACts/FdHTaOPMY7kstIEbYpc_JyXIW3oZfjc4ACLcBGAsYHQ/w200-h200/mordegaard-paint.png);}
 #filter2 div {background: 0% / cover url(https://1.bp.blogspot.com/-ZVQLUzINriU/Xw3kCnfKhqI/AAAAAAAACuc/dz2W8tf-o1MHVLeNUodrfiOMSGrbtkzhwCLcBGAsYHQ/w200-h200/mordegaard-paint.png);}
-#filter3 div {background: 0% / cover url(https://1.bp.blogspot.com/-9r6Q8ry4GYE/Xw4M4wwSTBI/AAAAAAAACuo/UcEjZTtkxfYGHKsDgeOHnKotjOG5S_yBQCLcBGAsYHQ/w200-h200/mordegaard-paint%2B%25281%2529.png);}
-#filter4 div {background: 0% / cover url(https://1.bp.blogspot.com/--jn0snEW-Fk/Xxb-h9hPGKI/AAAAAAAACvc/aUJxeXb8pHQuUBaNl60jmaPtOZrILtuxQCLcBGAsYHQ/w200-h200/mordegaard-paint.png);}
-#filter5 div {background: 0% / cover url(https://1.bp.blogspot.com/-fzUkPhqO9q4/Xx9d9-nbPNI/AAAAAAAACyw/Oqgqotuh-wEZkC1HQagV_8ccscCQf7cHgCLcBGAsYHQ/w200-h200/mordegaard-paint.jpg);}
-#filter6 div {background: 0% / cover url(https://1.bp.blogspot.com/-LpH2BilSOYw/XzKtb8RUqiI/AAAAAAAAC0U/Qz2xyV2UtmQLUmhxSRDjO8lVIMBIFjcPACLcBGAsYHQ/w200-h200/mordegaard-paint.png);}
-#filter7 div {background: 0% / cover url(https://1.bp.blogspot.com/-LOWNkaas0uQ/XzLxxtgcxqI/AAAAAAAAC0g/Fte1kEczRUYvrMFF-GDQgx0BD-n0oEXhwCLcBGAsYHQ/w200-h200/mordegaard-paint.png);}
+#filter9 div {background: 0% / cover url(https://1.bp.blogspot.com/-9r6Q8ry4GYE/Xw4M4wwSTBI/AAAAAAAACuo/UcEjZTtkxfYGHKsDgeOHnKotjOG5S_yBQCLcBGAsYHQ/w200-h200/mordegaard-paint%2B%25281%2529.png);}
+#filter3 div {background: 0% / cover url(https://1.bp.blogspot.com/--jn0snEW-Fk/Xxb-h9hPGKI/AAAAAAAACvc/aUJxeXb8pHQuUBaNl60jmaPtOZrILtuxQCLcBGAsYHQ/w200-h200/mordegaard-paint.png);}
+#filter4 div {background: 0% / cover url(https://1.bp.blogspot.com/-fzUkPhqO9q4/Xx9d9-nbPNI/AAAAAAAACyw/Oqgqotuh-wEZkC1HQagV_8ccscCQf7cHgCLcBGAsYHQ/w200-h200/mordegaard-paint.jpg);}
+#filter11 div {background: 0% / cover url(https://1.bp.blogspot.com/-LpH2BilSOYw/XzKtb8RUqiI/AAAAAAAAC0U/Qz2xyV2UtmQLUmhxSRDjO8lVIMBIFjcPACLcBGAsYHQ/w200-h200/mordegaard-paint.png);}
+#filter5 div {background: 0% / cover url(https://1.bp.blogspot.com/-LOWNkaas0uQ/XzLxxtgcxqI/AAAAAAAAC0g/Fte1kEczRUYvrMFF-GDQgx0BD-n0oEXhwCLcBGAsYHQ/w200-h200/mordegaard-paint.png);}
+#filter6 div {background: 0% / cover url(https://1.bp.blogspot.com/-Hp6b6IJcGuo/X651JbGPzfI/AAAAAAAAD2U/rfT0sxuRFY0B7hXpqDtM0uPsm6qaFAebgCLcBGAsYHQ/s2048/mordegaard-paint%2B%25282%2529.jpg);}
+#filter7 div {background: 0% / cover url(https://1.bp.blogspot.com/-PMYJD6XWAGs/X651NjnrnvI/AAAAAAAAD2Y/M-GasWY24CYQa_Ji9M0_utysTJhJtoG2gCLcBGAsYHQ/s2048/mordegaard-paint%2B%25283%2529.jpg);}
+#filter8 div {background: 0% / cover url(https://1.bp.blogspot.com/-Ulbeo4JQvbc/X651Nyz9GJI/AAAAAAAAD2c/ylF3gkndKYM4uophQGZnWUDuTQd_YCKPACLcBGAsYHQ/s2048/mordegaard-paint%2B%25284%2529.jpg);}
+#filter10 div {background: 0% / cover url(https://1.bp.blogspot.com/-HPls6Ww9mjQ/X651O70Af_I/AAAAAAAAD2g/PZZbQfGE0hEHh1INzDZPkfdFyxbFpVVXgCLcBGAsYHQ/s2048/mordegaard-paint%2B%25285%2529.jpg);}
 
 #tempFilter {width: 100%; height: 100%; top: 0; position: absolute;}
 
@@ -963,8 +969,8 @@ input[type="radio"] {
 .overlay .link input:checked + div {background: #348bee; color: var(--ui-col);}
 
 #blur_container {display: none;}
-#blur_container #blurPower {
-  width: 100%;
+#blur_container #blurPower, #filters_container #filterPower {
+  width: 50%;
   margin-right: 16px;
 }
 #blur_container .blur_list {
@@ -1032,9 +1038,27 @@ input[type="radio"] {
 }
 #curves_container input[name="curve"]:checked + label {background: currentColor;}
 
-#downloadName {
+#download_container .downloadName {
+  width: 100%;
+}
+#download_container .downloadName #downloadName {
   width: 280px;
   margin-left: 10px;
+}
+#download_container label span {
+  background: rgba(255,255,255,0.05);
+  color: grey;
+  border-bottom: 2px solid rgb(100,100,255);
+  padding: 5px 10px 4px 0px;
+}
+#download_container label input:focus + span {
+  color: white;
+  border-color: #00e3ff;
+}
+#download_container #fileSize {
+  color: grey;
+  font-size: 0.75em;
+  margin: 0px 10px;
 }
 
 #TEST {display: none;}
