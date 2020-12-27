@@ -25,7 +25,7 @@
       </div>
     </div>
 
-  <div id="actions">
+  <div id="actions" class="flexed">
   <div id="instruments"><div class="instruments flexed">
     <div class="button flexed" id="cropButton" title="Обрезать"><img src="icons/crop-solid.svg"></div>
     <div class="button sl flexed">
@@ -89,7 +89,8 @@
       </div>
     </div>
   </div></div>
-    <div class="canvases" style="height: 600px; position: relative; width: 1200px;">
+  <div class="flexed" style="width: calc(100% - 333px); height: 100%;">
+    <div class="canvases">
       <div class="in"><div class="inin">
       <div class="canvas_overflow"><div id="addedImage"></div></div>
       <canvas height="600" id="dl_canvas" style="display: none;" width="1200"></canvas>
@@ -137,6 +138,7 @@
       </div></div>
       <div id="cursor"></div>
     </div>
+  </div>
     <div class="flexed" id="colors_container">
     <div class="color_square_container flexed">
         <div class="color_square_line flexed">
@@ -160,13 +162,10 @@
         <div class="flexed" id="colorButton" style="background: var(--main-col); color: black;" title="Палитра [Space]"></div>
         <div class="flexed button" id="undoButton" style="font-size: 1.5em;" title="Отменить/Вернуть [Ctrl + Z]">↺</div>
         <div class="v-line"></div>
-        <div class="flexed button" id="zoomoutButton" title="Отдалить [Ctrl + Колесо мыши вниз]"><img src="icons/search-minus-solid.svg"></div>
-        <span id="zoom-info" title="Нажмите, чтобы сбросить масштаб и позицию холста">100%</span>
-        <div class="flexed button" id="zoominButton" title="Приблизить [Ctrl + Колесо мыши вверх]"><img src="icons/search-plus-solid.svg"></div>
       </div>
       </div>
 
-  <div class="layers_container">
+  <div class="layers_container visible">
     <div class="show-hide-btn flexed"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 60 255 255" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" style="width: 0.5em;"><path fill="currentColor" d="M120 121l-116 118q-9 8 0 17l7 7q8 9 17 0l100 -102l100 102q9 8 17 0l7 -7q9 -9 0 -17l-116 -118q-8 -8 -16 0z"></path></svg> </div>
     <div class="image_info flexed">
       <span class="title">Информация</span>
@@ -178,22 +177,14 @@
         <span id="infoX">X: </span>
         <span id="infoY">Y: </span>
       </div>
+      <div class="zoom-container flexed">
+        <div class="flexed button" id="zoomoutButton" title="Отдалить [Ctrl + Колесо мыши вниз]"><img src="icons/search-minus-solid.svg"></div>
+        <span id="zoom-info" title="Нажмите, чтобы сбросить масштаб и позицию холста">100%</span>
+        <div class="flexed button" id="zoominButton" title="Приблизить [Ctrl + Колесо мыши вверх]"><img src="icons/search-plus-solid.svg"></div>
+      </div>
       <div class="btn" id="openHistogramButton"><i class="fas fa-chart-area"></i> Гистограмма</div>
     </div>
-    <div class="layers_cont flexed">
-      <span style="color: white; margin: 24px 0px;">В РАЗРАБОТКЕ</span>
-      <div class="flexed" id="addlayer_btn">+</div>
-      <div class="layers flexed">
-        <div class="layer flexed">
-          <div class="layer_num flexed">0</div> <span class="layer_name">Фон</span>
-        </div>
-        <div class="layer draw flexed" id="l1">
-          <div class="layer_num flexed">1</div> <span class="layer_name">Слой</span>
-        </div>
-      </div>
-    </div>
   </div>
-
 
     <div class="overlay_container flexed">
       <div class="overlay_dark"></div>
@@ -285,13 +276,14 @@
         <div id="blur_container" class="flexed">
           <h3>Галерея размытий</h3>
           <div class="flexed" style="width: 100%;">
-            <div class="blur_list flexed">
-              <div><input type="radio" checked name="blur" class="checker" id="gaussian"/><label for="gaussian" class="checker">По Гауссу</label></div>
-            </div>
+            <ul class="blur_list">
+              <li><input type="radio" checked name="blur" class="checker" id="gaussian"/><label for="gaussian" class="checker">По Гауссу</label></li>
+              <li><input type="radio" name="blur" class="checker" id="pixelated"/><label for="pixelated" class="checker">Пиксели</label></li>
+            </ul>
             <div class="preview flexed"><canvas id="blurPreview"></canvas></div>
           </div>
           <div class="flexed" style="width: 100%;">
-            <input type="range" id="blurPower" min="0" max="180" value="0">
+            <input type="range" id="blurPower" min="1" max="180" value="1">
             <div class="btn" id="applyBlurBtn">Применить</div>
           </div>
         </div>

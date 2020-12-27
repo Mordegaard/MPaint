@@ -30,7 +30,7 @@ a, select, input {
   display: flex;
   top: 0;
   left: 0;
-  width: 100%;
+  width: 100vw;
   height: 100%;
   z-index: 99;
   background: rgb(16,22,32);
@@ -73,7 +73,11 @@ z-index: 10;
 #sticky-navbar div a {font-size: 2em;}
 #sticky-navbar p {letter-spacing: 2px; font-size: 1.5em; margin-left: 45px; color: white;}
 
-#actions {width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;}
+#actions {
+  width: 100%;
+  height: 100%;
+  justify-content: space-between;
+}
 
 .btn {
   position: relative;
@@ -89,13 +93,12 @@ z-index: 10;
 
 .button {
   color: white;
-  padding: 5px;
+  padding: 7px;
   cursor: pointer;
   font-size: 1.1em;
   position: relative;
   min-width: 24px;
   width:24px; height: 24px;
-  margin: 2px;
 }
 .button:active {transform: scale(0.85);}
 .btn:active {background: #00e3ff;}
@@ -153,7 +156,11 @@ z-index: 10;
 
 canvas {cursor: none; position: absolute; left: 0; top: 0;}
 #selectionCanvas {mix-blend-mode: difference; z-index: 3; pointer-events: none;}
-.canvases {transition: transform 0.3s; min-width: 1200px;}
+.canvases {
+  position: relative;
+  width: 1200px; height: 600px;
+  min-width: 1200px;
+}
 
 .slider {
 position: absolute;
@@ -254,7 +261,7 @@ box-shadow: 4px 4px 10px 0px rgba(0,0,0,0.6);
 position: relative;
 }
 .color_line {background: linear-gradient(to bottom, red 0%, #ff0 17%, lime 33%, cyan 50%, blue 66%, #f0f 83%, red 100%);}
-.transparent_line {background: url(https://4.bp.blogspot.com/-d3WixFuRqSY/XsWTKkE_f5I/AAAAAAAACiI/fG7l8pY04asjrdliqZafjtS5DEmAodHAQCLcBGAsYHQ/s1600/transparent-bg.jpg);}
+.transparent_line {background: url(images/transparent-bg.jpg);}
 .color_line div, .transparent_line .bump {
 position: absolute;
 top: 0;
@@ -312,7 +319,7 @@ pointer-events: none;
   left: 0;
   width: 100%;
   height: 100%;
-  background: url(https://4.bp.blogspot.com/-d3WixFuRqSY/XsWTKkE_f5I/AAAAAAAACiI/fG7l8pY04asjrdliqZafjtS5DEmAodHAQCLcBGAsYHQ/s1600/transparent-bg.jpg);
+  background: url(images/transparent-bg.jpg);
   z-index: -1;
 }
 #colorButton:before {
@@ -336,84 +343,40 @@ pointer-events: none;
 }
 
 .layers_container {
-position: absolute;
-width: 300px;
-height: 100%;
-top: 0;
-right: 0;
-background: var(--ui-col);
-transition: transform 0.25s;
-transform: translateX(100%);
-z-index: 6;
+  position: relative;
+  width: 333px;
+  height: 100%;
+  background: var(--ui-col);
+  transition: transform 0.25s;
+  transform: translateX(100%);
+  z-index: 6;
 }
 .layers_container.visible {transform: none;}
 .image_info {
   flex-direction: column;
   font-size: 18px;
-  margin: 42px 12px 0px 12px;
+  margin: 12px 8px 0px 8px;
   height: 50%;
   justify-content: flex-start;
 }
-.layers_cont {
-  flex-direction: column;
-  margin: 0px 12px 12px 12px;
-  max-height: 50%;
-  justify-content: flex-end;
-  display: none;
-}
-.layers {
-flex-direction: column-reverse;
-justify-content: flex-end;
-width: 100%;
-}
-.layer {
-justify-content: flex-start;
-width: 100%;
-height: 32px;
-background: grey;
-margin: 3px 0px;
-padding: 4px;
-transition: background 0.3s;
-}
-.layer_num {
-width: 32px;
-height: 32px;
-background: var(--ui-col);
-color: white;
-font-size: 25px;
-}
-.layer_name {
-color: white;
-margin-left: 10px;
-}
-#addlayer_btn {
-width: 40px;
-height: 40px;
-border-radius: 50%;
-color: white;
-background: grey;
-font-size: 32px;
-margin: 12px;
-cursor: pointer;
-}
 .layers_container .show-hide-btn {
+  position: absolute;
+  bottom: 0;
+  left: 0;
   width: 30px;
   height: 60px;
   background: var(--ui-col);
   margin-left: -30px;
-  top: 100%;
-  position: absolute;
   border-radius: 20px 0px 0px 20px;
   color: white;
   font-size: 40px;
   cursor: pointer;
-  transform: translateY(-100%);
 }
 .layers_container .show-hide-btn svg {transform: rotate(-90deg);}
 .layers_container.visible .show-hide-btn svg {transform: rotate(90deg);}
 
 #instruments {
-  position: absolute;
+  position: relative;
   left: 0;
   top: 0;
   z-index: 4;
@@ -425,13 +388,12 @@ cursor: pointer;
   justify-content: flex-start;
   position: relative;
   height: 100%;
-  padding: 42px 0px;
   background: var(--ui-col);
 }
 
 #inst-settings {height: 100%;}
 
-#bg_canvas {background: center / 1% url(https://4.bp.blogspot.com/-d3WixFuRqSY/XsWTKkE_f5I/AAAAAAAACiI/fG7l8pY04asjrdliqZafjtS5DEmAodHAQCLcBGAsYHQ/s1600/transparent-bg.jpg);}
+#bg_canvas {background: center / 1% url(images/transparent-bg.jpg);}
 
 .overlay_container {
   position: absolute;
@@ -974,11 +936,17 @@ input[type="radio"] {
   margin-right: 16px;
 }
 #blur_container .blur_list {
-  width: 33%;
-  padding: 8px;
+  padding: 0px;
   border: 1px solid #348bee;
-  flex-direction: column;
-  align-items: flex-start;
+  list-style: none;
+}
+#blur_container li {
+  margin: 10px;
+  display: grid;
+}
+#blur_container label.checker {
+  margin: 0;
+  display: block;
 }
 #blur_container .preview {
   width: 400px;
@@ -1005,11 +973,14 @@ input[type="radio"] {
   transform: translate(-50%, -50%);
 }
 
-.info {
-  justify-content: space-around;
-  flex-wrap: wrap;
+.info span {margin: 0px 4px;
+  word-break: keep-all;
+  white-space: nowrap;
 }
-.info span {margin: 0px 4px; word-break: keep-all; white-space: nowrap;}
+.zoom-container {
+  margin: 8px 0px;
+  font-size: 1.2em;
+}
 
 #imgMove .horiz, #imgMove .vert {position: absolute; background: rgb(128,128,128);}
 #imgMove .horiz {left: 0; width: 100%; height: 1px;}

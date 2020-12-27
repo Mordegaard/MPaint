@@ -947,7 +947,40 @@ function updateCanvas(w, h) {
 
 function applyBlur(canvas, mode, weight) {
   if (mode == 0) {
-    StackBlur.canvasRGBA(canvas, 0, 0, main_x, main_y, weight);
+    var w = Math.floor(canvas.width / main_x * weight);
+    StackBlur.canvasRGBA(canvas, 0, 0, main_x, main_y, w);
+  }
+  if (mode == 1) {
+    var c = canvas.getContext('2d');
+    if (weight < 10) weight = 10;
+    var width = Math.floor(canvas.width/main_x * weight);
+    var data = c.getImageData(0, 0, canvas.width, canvas.height);
+    var d = data.data;
+    for (var i=0; i<canvas.height; i+=width) {
+      for (var j=0; j<canvas.width; j+=width) {
+        var ar = [], ag = [], ab = [];
+        for (var y=i; y<i+width; y++) {
+          if (y > canvas.height) break;
+          for (var x=j; x<j+width; x++) {
+            if (x > canvas.width) break;
+            ar.push(d[4*(canvas.width*y+x)+0]);
+            ag.push(d[4*(canvas.width*y+x)+1]);
+            ab.push(d[4*(canvas.width*y+x)+2]);
+          }
+        }
+        var r = median(ar), g = median(ag), b = median(ab);
+        for (var y=i; y<i+width; y++) {
+          if (y > canvas.height) break;
+          for (var x=j; x<j+width; x++) {
+            if (x >= canvas.width) break;
+            d[4*(canvas.width*y+x)+0] = r;
+            d[4*(canvas.width*y+x)+1] = g;
+            d[4*(canvas.width*y+x)+2] = b;
+          }
+        }
+      }
+    }
+    c.putImageData(data, 0, 0);
   }
 }
 
@@ -2057,13 +2090,16 @@ getNode("cropButton").addEventListener("click", function(){
 getNode("flipV").addEventListener('click',function(){flip(false, true);});
 getNode("flipH").addEventListener('click',function(){flip(true, false);});
 
-getNode("blurPower").addEventListener('mouseup',function(){
+getNode("blurPower").addEventListener('change',function(){
   var canv = getNode("blurPreview");
   var canvx = canv.getContext('2d');
   canvx.clearRect(0,0,canv.width,canv.height);
   canvx.putImageData(tempData,0,0);
-  var pow = Math.floor(this.value / main_x * canv.width)
-  if (getNode("gaussian").checked) StackBlur.canvasRGBA(canv, 0, 0, canv.width, canv.height, pow);
+  var mode = 0;
+  [].forEach.call(document.getElementsByName("blur"), (el, ind) => {
+    if (el.checked) mode = ind;
+  });
+  applyBlur(canv, mode, this.value);
 });
 
 getNode("openBlurButton").addEventListener('click',function(){
@@ -2082,11 +2118,23 @@ getNode("openBlurButton").addEventListener('click',function(){
   tempData = canvx.getImageData(0,0,canv.width,canv.height);
 });
 
+;[].forEach.call(document.getElementsByName("blur"), (el, ind) => {
+  el.addEventListener("click", function(){
+    var weight = getNode("blurPower").value;
+    var canv = getNode("blurPreview");
+    applyBlur(canv, ind, weight);
+  });
+});
+
 getNode("applyBlurBtn").addEventListener('click',function(){
   ctx.globalAlpha = tr1; un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
   var weight = getNode("blurPower").value;
   toggleVisible(document.getElementsByClassName("overlay_container")[0]);
-  applyBlur(canvas, 0, weight);
+  var mode = 0;
+  [].forEach.call(document.getElementsByName("blur"), (el, ind) => {
+    if (el.checked) mode = ind;
+  });
+  applyBlur(canvas, mode, weight);
 });
 
 getNode("openHistogramButton").addEventListener('click',function() {
