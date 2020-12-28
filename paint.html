@@ -11,9 +11,9 @@
 
 <body>
   <div id="pagemax">
-    <div id="sticky-navbar">
+    <div id="sticky_navbar">
       <div class="options flexed">
-      <div class="flexed" id="inst-settings"></div>
+      <div class="flexed" id="inst_settings"></div>
       </div>
 
       <div class="options flexed" style="margin-right: 20px;">
@@ -50,6 +50,29 @@
     <div class="button flexed" id="textButton" title="Текст">T</div>
     <div class="h-line"></div>
     <div class="button flexed" id="imagePropsButton" title="Настройки изображения"><img src="icons/sliders-h-solid.svg"></div>
+    <div class="h-line"></div>
+    <div class="flexed button" id="undoButton" style="font-size: 1.5em;" title="Отменить/Вернуть [Ctrl + Z]">↺</div>
+    <div class="flexed" id="colorButton" title="Палитра [Space]"><div style="background: var(--main-col);"></div></div>
+    <div class="flexed" id="colors_container">
+      <div class="color_square_container flexed">
+        <div class="color_square_line flexed">
+          <div id="colorSquare">
+            <div id="squareSelector"></div>
+            <div class="color_sqr sqr1"></div> <div class="color_sqr sqr2"></div>
+          </div>
+          <div id="colorLine"><div id="lineSelector"></div></div>
+          <div id="transparentLine"><div id="transparencySelector"></div><div class="transparent_line_in"></div></div>
+        </div>
+        <div class="color_buttons flexed">
+          <div class="flexed" style="height: 100%; width: 70%;">
+            <div class="colorBtn flexed" id="updateBrush" style="background: var(--main-col);" title="Изменить основной цвет инструмента"><img src="icons/paint-brush-solid.svg">1</div>
+            <img src="icons/exchange-alt-solid.svg" id="exchange-colors" style="margin: 0px 6px;" title="Поменять цвета местами [X]">
+            <div class="colorBtn flexed" id="updateBrush2" style="background: var(--sec-col); color: white;" title="Изменить второстепенный цвет инструмента"><img src="icons/paint-brush-solid.svg">2</div>
+          </div>
+          <div class="colorBtn flexed" id="updateBackground" style="background: var(--bg-col);" title="Изменить цвет фона"><img src="icons/th-large-solid.svg"></div>
+        </div>
+      </div>
+    </div>
     <div id="imageProperties">
       <div class="in-imageProps flexed">
         <span class="title">Ориентация</span>
@@ -98,9 +121,9 @@
       <canvas height="600" id="main_canvas" style="z-index: 0;" width="1200"></canvas>
       <canvas height="600" id="undo_canvas2" style="display: none;" width="1200"></canvas>
       <canvas height="600" id="undo_canvas1" style="z-index: 1;" width="1200"></canvas>
-      <div id="image_border">
+      <div id="imageBorder">
         <div class="in_image_border">
-          <div id="full_img_border">
+          <div id="fullImageBorder">
             <div style="position: relative; width: 100%; height: 100%;">
               <div class="imgBorder" id="imgBordLT"></div>
               <div class="imgBorder" id="imgBordLB"></div>
@@ -139,34 +162,11 @@
       <div id="cursor"></div>
     </div>
   </div>
-    <div class="flexed" id="colors_container">
-    <div class="color_square_container flexed">
-        <div class="color_square_line flexed">
-        <div id="color_square" onclick="color_sqr(event)">
-          <div id="color_selector"></div>
-          <div class="color_sqr sqr1"></div> <div class="color_sqr sqr2"></div>
-        </div>
-        <div class="color_line" onclick="color_line(event)"><div></div></div>
-        <div class="transparent_line"><div class="bump"></div><div class="transparent_line_in"></div></div>
-        </div>
-        <div class="color_buttons flexed">
-          <div class="flexed" style="height: 100%; width: 70%;">
-            <div class="colorBtn flexed" id="updateBrush" style="background: var(--main-col);" title="Изменить основной цвет инструмента"><img src="icons/paint-brush-solid.svg">1</div>
-            <img src="icons/exchange-alt-solid.svg" id="exchange-colors" style="margin: 0px 6px;" title="Поменять цвета местами [X]">
-            <div class="colorBtn flexed" id="updateBrush2" style="background: var(--sec-col); color: white;" title="Изменить второстепенный цвет инструмента"><img src="icons/paint-brush-solid.svg">2</div>
-          </div>
-          <div class="colorBtn flexed" id="updateBackground" style="background: var(--bg-col);" title="Изменить цвет фона"><img src="icons/th-large-solid.svg"></div>
-        </div>
-      </div>
-      <div class="colorsInstruments flexed">
-        <div class="flexed" id="colorButton" style="background: var(--main-col); color: black;" title="Палитра [Space]"></div>
-        <div class="flexed button" id="undoButton" style="font-size: 1.5em;" title="Отменить/Вернуть [Ctrl + Z]">↺</div>
-        <div class="v-line"></div>
-      </div>
-      </div>
 
   <div class="layers_container visible">
-    <div class="show-hide-btn flexed"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 60 255 255" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" style="width: 0.5em;"><path fill="currentColor" d="M120 121l-116 118q-9 8 0 17l7 7q8 9 17 0l100 -102l100 102q9 8 17 0l7 -7q9 -9 0 -17l-116 -118q-8 -8 -16 0z"></path></svg> </div>
+    <div class="show-hide-btn flexed">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 60 255 255" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" style="width: 0.4em;"><path fill="currentColor" d="M120 121l-116 118q-9 8 0 17l7 7q8 9 17 0l100 -102l100 102q9 8 17 0l7 -7q9 -9 0 -17l-116 -118q-8 -8 -16 0z"></path></svg>
+    </div>
     <div class="image_info flexed">
       <span class="title">Информация</span>
       <div class="info">
@@ -177,7 +177,7 @@
         <span id="infoX">X: </span>
         <span id="infoY">Y: </span>
       </div>
-      <div class="zoom-container flexed">
+      <div class="zoom_container flexed">
         <div class="flexed button" id="zoomoutButton" title="Отдалить [Ctrl + Колесо мыши вниз]"><img src="icons/search-minus-solid.svg"></div>
         <span id="zoom-info" title="Нажмите, чтобы сбросить масштаб и позицию холста">100%</span>
         <div class="flexed button" id="zoominButton" title="Приблизить [Ctrl + Колесо мыши вверх]"><img src="icons/search-plus-solid.svg"></div>
@@ -196,6 +196,10 @@
           <div class="flexed" style="width: 100%;"><span>Вы также можете вставить изображение из буфера обмена: Ctrl + V<br />Или перетащив файл изображения на холст</span></div>
           <div class="btn" id="addImage">Добавить</div>
           <span class="errorText"></span>
+          <div class="image_history_container">
+            <span id="imageHistoryTitle" class="title">Последние использованные изображения</span>
+            <div id="imageHistory" class="flexed"></div>
+          </div>
         </div>
         <div class="flexed" id="editCanvas_container">
           <h3>Параметры нового холста</h3>
@@ -218,7 +222,7 @@
               </div>
               <div class="canvasPreview flexed"><div id="canvasPreview" style="height: 100px; width: 200px;"><div id="canvasAspectRatio">2:1</div></div></div>
             </div>
-          <label class="input-cont flexed" id="pasteImg"><input type="checkbox" /><div class="input-style"></div><span>Вставить изображение на новый холст</span></label>
+          <label class="input_cont flexed" id="pasteImg"><input type="checkbox" /><div class="input_style"></div><span>Вставить изображение на новый холст</span></label>
           <div class="btn" id="updateCanvas">Создать холст</div>
           <span class="errorText">Создание нового холста полностью очистит старый холст</span>
         </div>

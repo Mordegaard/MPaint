@@ -34,74 +34,69 @@ return [red, green, blue];
 }
 
 function color_line(event) {
-  var y = event.pageY - $('.color_line').offset().top;
+  var y = event.pageY - $('#colorLine').offset().top;
   if (y < 0) y=0; if (y > 255) y=255;
-  $(".color_line div").css('top',y+'px');
+  document.getElementById("lineSelector").style.top = `${y}px`;
   hue = y/255*360;
-  var result = hsv_to_rgb(hue, 100, 100);
-  var red=result[0]; var green=result[1]; var blue=result[2];
-  document.getElementsByTagName('html')[0].style.setProperty('--hue-col', 'rgb('+red+','+green+','+blue+')');
+  document.getElementsByTagName('html')[0].style.setProperty('--hue-col', 'hsl('+hue+'deg,100%,50%)');
   var result = hsv_to_rgb(hue,saturation,value);
   var red=result[0]; var green=result[1]; var blue=result[2];
   document.getElementsByTagName('html')[0].style.setProperty('--sel-col', 'rgb('+red+','+green+','+blue+')');
   return;
 }
-  
+
 function transparent_line(event) {
-  var y = event.pageY - $('.color_line').offset().top;
+  var y = event.pageY - $('#colorLine').offset().top;
   if (y < 0) y=0; if (y > 255) y=255;
-  $(".transparent_line .bump").css('top',y+'px');
+  document.getElementById("transparencySelector").style.top = `${y}px`;
   transparency = 1 - y/255;
   return;
 }
 
 function color_sqr(event) {
-  var x = event.pageX - $('#color_square').offset().left;
+  var x = event.pageX - $('#colorSquare').offset().left;
   if (x > 255) x = 255; if (x < 0) x = 0;
-  var y = event.pageY - $('#color_square').offset().top;
+  var y = event.pageY - $('#colorSquare').offset().top;
   if (y > 255) y = 255; if (y < 0) y = 0;
-  $("#color_selector").css({'top':y-3+'px', 'left':x-7+'px'});
+  document.getElementById("squareSelector").style.top = `${y}px`;
+  document.getElementById("squareSelector").style.left = `${x}px`;
   saturation = x/255*100; value = (255 - y)/255*100;
   var result = hsv_to_rgb(hue,saturation,value);
   var red=result[0]; var green=result[1]; var blue=result[2];
   document.getElementsByTagName('html')[0].style.setProperty('--sel-col', 'rgb('+red+','+green+','+blue+')');
   return;
 }
-  
+
 function updateSelector() {
-  document.getElementById("color_selector").style.top = 255-3 - value/100*255 + 'px';
-  document.getElementById("color_selector").style.left = saturation/100*255-7 + 'px';
-  $(".color_line div").css('top',(hue/360*255)+'px');
-  $(".transparent_line .bump").css('top',(1 - transparency)*255+'px');
+  document.getElementById("squareSelector").style.top = 255 - value/100*255 + 'px';
+  document.getElementById("squareSelector").style.left = saturation/100*255 + 'px';
+  document.getElementById("lineSelector").style.top = hue/360*255 + 'px';
+  document.getElementById("transparencySelector").style.top = 255 - transparency*255 + 'px';
   var res = hsv_to_rgb(hue, saturation, value);
   document.getElementsByTagName('html')[0].style.setProperty('--sel-col', 'rgb('+res[0]+','+res[1]+','+res[2]+')');
-  res = hsv_to_rgb(hue, 100, 100);
-  document.getElementsByTagName('html')[0].style.setProperty('--hue-col', 'rgb('+res[0]+','+res[1]+','+res[2]+')');
+  document.getElementsByTagName('html')[0].style.setProperty('--hue-col', 'hsl('+hue+'deg,100%,50%)');
 }
 
 $(document).ready(function() {
   var bg = document.getElementById('bg_canvas').getContext('2d');
-  square_drop = 0; line_drop = 0; transparency_drop = 0;
-  $('#color_square').on("mousedown", function() {
-    square_drop = 1;
+  document.getElementById("colorSquare").addEventListener("mousedown", function(){
+    document.addEventListener("mousemove", color_sqr, false);
   });
-  $('.color_line').on("mousedown", function() {
-    line_drop = 1;
+  document.getElementById("colorLine").addEventListener("mousedown", function(){
+    document.addEventListener("mousemove", color_line, false);
   });
-  $('.transparent_line').on("mousedown", function() {
-    transparency_drop = 1;
+  document.getElementById("transparentLine").addEventListener("mousedown", function(){
+    document.addEventListener("mousemove", transparent_line, false);
   });
-  $(document).on("mouseup", function() {
-    square_drop = 0; line_drop = 0; transparency_drop = 0;
-  });
-  $(document).on("mousemove", function() {
-    if (square_drop) {color_sqr(event);}
-    if (line_drop) {color_line(event);}
-    if (transparency_drop) {transparent_line(event);}
+  document.addEventListener("mouseup", function(){
+    document.removeEventListener("mousemove", color_sqr);
+    document.removeEventListener("mousemove", color_line);
+    document.removeEventListener("mousemove", transparent_line);
   });
 
   $('#updateBrush').click(function() {
-    if (value >= 75) {$('#updateBrush').css('color', 'black'); $('#colorButton').css('color', 'black');} else {$('#updateBrush').css('color', 'white'); $('#colorButton').css('color', 'white');}
+    if (value >= 75) $('#updateBrush').css('color', 'black')
+    else $('#updateBrush').css('color', 'white');
     var color = hsv_to_rgb(hue, saturation, value);
     var ready_color = 'rgb(' + color[0] + ',' + color[1] + ',' + color[2] + ')';
     var tr_color = 'rgba(' + color[0] + ',' + color[1] + ',' + color[2] + ',' + transparency + ')';
@@ -110,9 +105,10 @@ $(document).ready(function() {
     selectedColor = ready_color;
     red1 = color[0]; green1 = color[1]; blue1 = color[2];
   });
-  
+
   $('#updateBrush2').click(function() {
-    if (value >= 75) {$('#updateBrush2').css('color', 'black');} else {$('#updateBrush2').css('color', 'white');}
+    if (value >= 75) $('#updateBrush2').css('color', 'black')
+    else $('#updateBrush2').css('color', 'white');
     var color = hsv_to_rgb(hue, saturation, value);
     var ready_color = 'rgb(' + color[0] + ',' + color[1] + ',' + color[2] + ')';
     var tr_color = 'rgba(' + color[0] + ',' + color[1] + ',' + color[2] + ',' + transparency + ')';
@@ -123,7 +119,8 @@ $(document).ready(function() {
   });
 
   $('#updateBackground').click(function() {
-    if (value >= 75) {$('#updateBackground').css('color', 'black');} else {$('#updateBackground').css('color', 'white');}
+    if (value >= 75) $('#updateBackground').css('color', 'black')
+    else $('#updateBackground').css('color', 'white');
     var color = hsv_to_rgb(hue, saturation, value);
     var ready_color = 'rgba(' + color[0] + ',' + color[1] + ',' + color[2] + ',' + transparency + ')';
     document.getElementById("pagemax").style.setProperty("--bg-col", ready_color);
