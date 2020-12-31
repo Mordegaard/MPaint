@@ -36,7 +36,7 @@ var instrument = 0;
 var x1, x2, y1, y2, canvX=0, canvY=0;
 var shift = false, ctrl = false, reservedBool = false;
 var addImg = new Image(), bgImg = new Image(); addImg.setAttribute("crossorigin", "anonymous");
-var cBorder=1, saved_inst = "", scale = 1, scale1 = 1, scale2 = 0;; brushCoords = [[],[]];
+var saved_inst = "", scale = 1, brushCoords = [[],[]];
 var overlay = [id("addImg_container"), id("editCanvas_container"), id("filters_container"), id("download_container"), id("blur_container"), id("histogram_container"), id("curves_container")];
 main_x = canvas.width; main_y = canvas.height;
 var colCorrect = [0,0,0,0,0], tempData;
@@ -55,6 +55,16 @@ $('#l1').css('background','#348bee');
 bg.fillStyle = bgColor; bg.fillRect(0,0,main_x,main_y);
 ctx.imageSmoothingEnabled = false;
 bg.imageSmoothingEnabled = true;
+
+function toastMsg(str) {
+  var msg = document.createElement('div');
+  msg.classList.add("toast");
+  msg.innerText = str;
+  id("toastContainer").prepend(msg);
+  setTimeout(() => {
+    msg.remove();
+  }, 3000);
+}
 
 function median(values){
   if(values.length ===0) return 0;
@@ -103,16 +113,20 @@ function changeInst(block) {
   }
 }
 
+function changeBrushSize(s) {
+  id("size_slider").getElementsByClassName("slider_button")[0].style.left = s + 'px';
+  size = Math.round(s);
+  id("brushSize").children[0].innerText = size + "px";
+  cl("slider_line")[0].children[0].style.width = size + 'px';
+  id("cursor").style.width = size+'px'; id("cursor").style.height = size+'px';
+}
+
 function sliding() {
-var x = event.pageX - $('#size_slider .slider_line').offset().left;
-width = $('#size_slider .slider_line').width();
-if (x > width ) x = width;
-if (x < 1) x = 1;
-$('#size_slider .slider_button').css('left', x-10);
-size = Math.round(x);
-id("brush-size").children[0].innerText = size + "px";
-$('.slider_line div').css('width', size + 'px');
-$('#cursor').css({'width':size+'px', 'height':size+'px'});
+  var x = event.pageX - $('#size_slider .slider_line').offset().left;
+  width = $('#size_slider .slider_line').width();
+  if (x > width ) x = width;
+  if (x < 1) x = 1;
+  changeBrushSize(x);
 }
 
 function drawing(context, event, x, y) {
@@ -345,7 +359,8 @@ function updateInputWidth(block) {
   block.style.width = block.value.length + (uppercases/3) + 2 + "ch";
 }
 
-function updateZoom(m) {
+function updateZoom(sc) {
+  scale = sc;
   cl("in")[0].style.transform = "scale("+scale+")";
   id("zoom-info").innerText = Math.round(scale*100) + '%';
   var B = cl("canvases")[0];
@@ -357,9 +372,8 @@ function updateZoom(m) {
   for (var i = 0; i < b.length; i++) b[i].style.transform = "translateX(-50%) scale("+(1/scale)+")";
   b = B.getElementsByClassName("imgRotate");
   for (var i = 0; i < b.length; i++) b[i].style.transform = "translateY(-50%) scale("+(1/scale)+")";
-  cBorder = 1/scale;
-  id("cursor").style.transform = "scale("+scale+")";
-  id("cursor").style.borderWidth = cBorder+'px';
+  id("cursor").style.transform = "translate(-50%, -50%) scale("+scale+")";
+  id("cursor").style.borderWidth = 1/scale+'px';
   id("cutSel").style.transform = "translateY(-50%) scale("+(1/scale)+")";
   id("copySel").style.transform = "translateY(-50%) scale("+(1/scale)+")";
   id("bg_canvas").style.backgroundSize = 1/scale + "%";
@@ -405,7 +419,7 @@ function fill() {
     wi = c.width; he = c.height;
   }
   var depth = id("fillWeight").value / 2;
-  if (depth < 0) depth = 0; else if (depth > 255) depth = 128;
+  if (depth < 0) depth = 0; else if (depth > 128) depth = 128;
   var coords = [];
   var cI = 0;
 
@@ -424,7 +438,10 @@ function fill() {
   var matchColor = getCol(x2,y2);
   if (JSON.stringify(matchColor) == JSON.stringify([red1,green1,blue1,matchColor[3]])) return;
   if (x2 < 0 || x2 > wi || y2 < 0 || y2 > he)  return;
-  if (matchColor.compareCols([red1,green1,blue1,matchColor[3]])) depth = 0;
+  if (matchColor.compareCols([red1,green1,blue1,matchColor[3]])) {
+    depth = 0;
+    toastMsg("Цвета слишком похожи. Допуск понижен до нуля.")
+  }
   function checkVert(x,y) {
     var left=false,right=false;
     var Y = y, X = x;
@@ -952,10 +969,8 @@ function updateCanvas(w, h) {
   bb.style.width = w+'px'; bb.style.height = h+'px'; bb.style.minWidth = w+'px';
   bg.fillStyle = bgColor;
   bg.fillRect(0,0,main_x,main_y);
-  if (w > h) scale1 = 1200 / w; else scale1 = 600 / h;
-  scale2 = 0;
-  scale = scale1+scale2;
-  updateZoom(0);
+  if (w > h) scale = 1200 / w; else scale = 600 / h;
+  updateZoom(scale);
   canvX = 0; canvY = 0;
   cl("in")[0].style.top = canvY + 'px';
   cl("in")[0].style.left = canvX + 'px';
@@ -976,8 +991,8 @@ function applyBlur(canvas, mode, weight) {
   }
   if (mode == 1) {
     var c = canvas.getContext('2d');
-    if (weight < 10) weight = 10;
     var width = Math.floor(canvas.width/main_x * weight);
+    if (width < 2) width = 2;
     var data = c.getImageData(0, 0, canvas.width, canvas.height);
     var d = data.data;
     for (var i=0; i<canvas.height; i+=width) {
@@ -1043,11 +1058,14 @@ id("pagemax").addEventListener('drop', function(e){
         var bl = document.createElement('div');
         bl.innerHTML = el;
         var url = bl.getElementsByTagName('img')[0].getAttribute('src');
-        console.log(url);
-        if (addImage(url) == -1) {
-          if (addImage("https://cors-anywhere.herokuapp.com/"+url) == -1) {
-            console.warn("error while loading dropped image from another website"); return;
-          }
+        var tried = false;
+        addImg.src = url;
+        addImg.onerror = function() {
+          if (!tried) {addImg.src = "https://cors-anywhere.herokuapp.com/"+url; tried = true; return;}
+          else toastMsg("Невозможно загрузить изображение"); return;
+        }
+        addImg.onload = function (e) {
+          addImage(addImg.src);
         }
       }
     }
@@ -1357,6 +1375,24 @@ function getDownloadBase64() {
   id("fileSize").innerText = '~ ' + sizeInBytes + step;
 }
 
+function toClipboard() {
+  var canv = canvas;
+  if (Selection.points != false) {
+    canv = document.createElement('canvas');
+    var c = canv.getContext('2d');
+    canv.width = Selection.width; canv.height = Selection.height;
+    c.drawImage(canvas, -Selection.left, -Selection.top);
+  } else {
+
+  }
+  canv.toBlob(blob=>{
+    navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
+    if (Selection.points != false) toastMsg("Выделенная область скопирована")
+    else toastMsg("Скопирован весь холст");
+  });
+  removeSelection();
+}
+
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1367,17 +1403,19 @@ document.addEventListener('keydown', function(event) {
     shift = true;
   }
   if (event.ctrlKey || event.metaKey) {ctrl = true; updateCursor(-2);}
-  if (event.code == "Space" && !$("input").is(":focus")) {$("#colorButton").click();}
-  if (event.code == 'KeyX' && !$("input").is(":focus")) {swapColors();}
-  if (event.code == 'Enter' && adding && !$("input").is(":focus")) {$(".imgApply")[0].click();}
+  if (event.code == "Space") {$("#colorButton").click();}
+  if (event.code == 'KeyX') {swapColors();}
+  if (event.code == 'Enter' && adding) {$(".imgApply")[0].click();}
   if (event.code == 'Escape' && adding) {$(".imgCancel")[0].click();}
-  if (event.code == 'KeyB' && !$("input").is(":focus")) {$('#brushButton').click();}
-  if (event.code == 'KeyG' && !$("input").is(":focus")) {$('#fillButton').click();}
-  if (event.code == 'KeyE' && !$("input").is(":focus")) {$('#eraserButton').click();}
-  if (event.code == 'KeyP' && !$("input").is(":focus")) {$('#pipetteButton').click();}
-  if (event.code == 'Digit0' && ctrl && !$("input").is(":focus")) {$('#zoom-info').click();}
-  if (event.code == 'KeyZ' && ctrl && !$("input").is(":focus")) {
-    event.preventDefault(); $("#undoButton").click();
+  if (event.code == 'KeyB') {id("brushButton").click();}
+  if (event.code == 'KeyG') {id("fillButton").click();}
+  if (event.code == 'KeyE') {id("eraserButton").click();}
+  if (event.code == 'KeyP') {id("pipetteButton").click();}
+  if (event.code == 'Digit0' && ctrl) {id("zoom-info").click();}
+  if (event.code == 'BracketLeft') {changeBrushSize(size-10);}
+  if (event.code == 'BracketRight') {changeBrushSize(size+10);}
+  if (event.code == 'KeyZ' && ctrl) {
+    event.preventDefault(); id("undoButton").click();
   }
   //console.log(event.code);
 });
@@ -1393,21 +1431,21 @@ document.addEventListener('wheel', function(event) {
   if (event.ctrlKey == true) {
     event.preventDefault();
     var e = event || window.event;
-    var m=0;
     var delta = e.deltaY || e.detail || e.wheelDelta;
     if (delta < 0) {
-      scale2 += 0.05;
-      m=1;
+      scale += 0.05;
     }
     else {
-      scale2 -= 0.05;
-      m=-1
+      scale -= 0.05;
     }
-    if (scale1+scale2 > 4) scale2 = 4-scale1; else if (scale1+scale2 < 0.1) scale2 = 0.1-scale1;
-    scale = scale1+scale2;
-    updateZoom(m);
+    if (scale > 4) scale = 4; else if (scale < 0.1) scale = 0.1;
+    updateZoom(scale);
   }
 }, { passive: false});
+
+[].forEach.call(document.getElementsByTagName("input"), function(el){
+  el.addEventListener("keydown", e=> {e.stopPropagation();});
+});
 
 Array.prototype.forEach.call([id('copySel'), id('cutSel')], function(el, mode){
   el.addEventListener('mousedown', function(){
@@ -1480,8 +1518,9 @@ Array.prototype.forEach.call([id('copySel'), id('cutSel')], function(el, mode){
       }
       if (instrument == 7 && !ctrl) {fill();}
   });
-  $(document).on("mousedown", '#size_slider', function() {
+  $(document).on("mousedown", '#size_slider', function(e) {
     isSliding = 1;
+    e.stopPropagation();
   });
   $("#contrastSlider").on("mousedown", function() {
     isSliding = 2;
@@ -1549,7 +1588,7 @@ Array.prototype.forEach.call([id('copySel'), id('cutSel')], function(el, mode){
                          if (instrument==2) {lastAct = false; drawing(ctx, event, ctxX, ctxY);}
                         }
     if (isSliding) {
-      if (isSliding == 1) {sliding(event);}
+      if (isSliding == 1) {sliding();}
       if (isSliding == 2) {colorCorrection(0);}
       if (isSliding == 3) {colorCorrection(1);}
       if (isSliding == 4) {colorCorrection(2);}
@@ -1568,8 +1607,8 @@ Array.prototype.forEach.call([id('copySel'), id('cutSel')], function(el, mode){
         case 6: imgRotate(event); break;
       }
     }
-    id("cursor").style.left = event.pageX-size/2-cBorder + 'px';
-    id("cursor").style.top = event.pageY-size/2-cBorder + 'px';
+    id("cursor").style.left = event.pageX + 'px';
+    id("cursor").style.top = event.pageY + 'px';
     ctxX = event.pageX - $('#main_canvas').offset().left; ctxY = event.pageY - $('#main_canvas').offset().top;
   });
 
@@ -1594,7 +1633,7 @@ $('#brushButton').click(function(){
   if (!adding && !correctingBool) {
     changeInst(this); instrument=1;
     updateCursor(1);
-    instBlock.innerHTML = '<span class="flexed" style="color: white; height: 100%; margin: 0px 15px;">Размер пера: </span><div class="flexed" id="brush-size"><span style="text-align: center; width: 100%;">'+size+'px</span><div class="slider flexed" id="size_slider"><div style="position: relative; width: 100%;"><div class="slider_button" style="left:' + (size-10) + 'px;"></div> <div class="slider_line"><div style="width:'+ size +'px;"></div></div></div></div></div><select id="penType" style="margin:0px 10px;"><option>Обычное перо</option>  <option>Тонкие края</option>  <option>Карандаш</option>  <option>Плавная линия</option></select>';
+    instBlock.innerHTML = '<span class="flexed" style="color: white; height: 100%; margin: 0px 15px;">Размер пера: </span><div class="flexed" id="brushSize"><span style="text-align: center; width: 100%;">'+size+'px</span><div class="slider flexed" id="size_slider"><div style="position: relative; width: 100%;"><div class="slider_button" style="left:' + size + 'px;"></div> <div class="slider_line"><div style="width:'+ size +'px;"></div></div></div></div></div><select id="penType" style="margin:0px 10px;"><option>Обычное перо</option>  <option>Тонкие края</option>  <option>Карандаш</option>  <option>Плавная линия</option></select>';
   }
 });
 
@@ -1603,7 +1642,7 @@ $('#eraserButton').click(function(){
   if (!adding && !correctingBool) {
     changeInst(this); instrument=2;
     updateCursor(2);
-    instBlock.innerHTML = '<span class="flexed" style="color: white; height: 100%; margin: 0px 15px;">Размер пера: </span><div class="flexed" id="brush-size"><span style="text-align: center; width: 100%;">'+size+'px</span><div class="slider flexed" id="size_slider"><div style="position: relative; width: 100%;"><div class="slider_button" style="left:' + (size-10) + 'px;"></div> <div class="slider_line"><div style="width:'+ size +'px;"></div></div></div></div></div>';
+    instBlock.innerHTML = '<span class="flexed" style="color: white; height: 100%; margin: 0px 15px;">Размер пера: </span><div class="flexed" id="brushSize"><span style="text-align: center; width: 100%;">'+size+'px</span><div class="slider flexed" id="size_slider"><div style="position: relative; width: 100%;"><div class="slider_button" style="left:' + size + 'px;"></div> <div class="slider_line"><div style="width:'+ size +'px;"></div></div></div></div></div>';
   }
 });
 
@@ -1621,7 +1660,7 @@ $('#lineButton').click(function(){
   if (!adding && !correctingBool) {
     changeInst(this); instrument = 3;
     updateCursor(3);
-    instBlock.innerHTML = '<span class="flexed" style="color: white; height: 100%; margin: 0px 15px;">Толщина линии: </span><div class="flexed" id="brush-size"><span style="text-align: center; width: 100%;">'+size+'px</span><div class="slider flexed" id="size_slider"><div style="position: relative; width: 100%;"><div class="slider_button" style="left:' + (size-10) + 'px;"></div> <div class="slider_line"><div style="width:'+ size +'px;"></div></div></div></div></div><select id="lineType" style="margin:0px 10px;"><option>Прямые края</option>  <option>Скруглённые края</option>  <option>Стрелка</option></select>';
+    instBlock.innerHTML = '<span class="flexed" style="color: white; height: 100%; margin: 0px 15px;">Толщина линии: </span><div class="flexed" id="brushSize"><span style="text-align: center; width: 100%;">'+size+'px</span><div class="slider flexed" id="size_slider"><div style="position: relative; width: 100%;"><div class="slider_button" style="left:' + size + 'px;"></div> <div class="slider_line"><div style="width:'+ size +'px;"></div></div></div></div></div><select id="lineType" style="margin:0px 10px;"><option>Прямые края</option>  <option>Скруглённые края</option>  <option>Стрелка</option></select>';
   }
 });
 
@@ -1630,7 +1669,7 @@ $('#rectButton').click(function(){
   if (!adding && !correctingBool) {
     changeInst(this); instrument = 4;
     updateCursor(4);
-    instBlock.innerHTML = '<span class="flexed" style="color: white; height: 100%; margin: 0px 15px;">Толщина контура: </span><div class="flexed" id="brush-size"><span style="text-align: center; width: 100%;">'+size+'px</span><div class="slider flexed" id="size_slider"><div style="position: relative; width: 100%;"><div class="slider_button" style="left:' + (size-10) + 'px;"></div> <div class="slider_line"><div style="width:'+ size +'px;"></div></div></div></div></div><label class="input-cont flexed"><input id="strokeShape" type="checkbox" /><div class="input-style"></div><span>Обводка контура</span></label><label class="input-cont flexed"><input id="fillShape" type="checkbox" checked /><div class="input-style"></div><span>Заливка</span></label>';
+    instBlock.innerHTML = '<span class="flexed" style="color: white; height: 100%; margin: 0px 15px;">Толщина контура: </span><div class="flexed" id="brushSize"><span style="text-align: center; width: 100%;">'+size+'px</span><div class="slider flexed" id="size_slider"><div style="position: relative; width: 100%;"><div class="slider_button" style="left:' + size + 'px;"></div> <div class="slider_line"><div style="width:'+ size +'px;"></div></div></div></div></div><label class="input_cont flexed"><input id="strokeShape" type="checkbox" /><div class="input_style"></div><span>Обводка контура</span></label><label class="input_cont flexed"><input id="fillShape" type="checkbox" checked /><div class="input_style"></div><span>Заливка</span></label>';
   }
 });
 
@@ -1639,7 +1678,7 @@ $('#arcButton').click(function(){
   if (!adding && !correctingBool) {
     changeInst(this); instrument = 5;
     updateCursor(5);
-    instBlock.innerHTML = '<span class="flexed" style="color: white; height: 100%; margin: 0px 15px;">Толщина контура: </span><div class="flexed" id="brush-size"><span style="text-align: center; width: 100%;">'+size+'px</span><div class="slider flexed" id="size_slider"><div style="position: relative; width: 100%;"><div class="slider_button" style="left:' + (size-10) + 'px;"></div> <div class="slider_line"><div style="width:'+ size +'px;"></div></div></div></div></div><label class="input-cont flexed"><input id="strokeShape" type="checkbox" /><div class="input-style"></div><span>Обводка контура</span></label><label class="input-cont flexed"><input id="fillShape" type="checkbox" checked /><div class="input-style"></div><span>Заливка</span></label>';
+    instBlock.innerHTML = '<span class="flexed" style="color: white; height: 100%; margin: 0px 15px;">Толщина контура: </span><div class="flexed" id="brushSize"><span style="text-align: center; width: 100%;">'+size+'px</span><div class="slider flexed" id="size_slider"><div style="position: relative; width: 100%;"><div class="slider_button" style="left:' + size + 'px;"></div> <div class="slider_line"><div style="width:'+ size +'px;"></div></div></div></div></div><label class="input_cont flexed"><input id="strokeShape" type="checkbox" /><div class="input_style"></div><span>Обводка контура</span></label><label class="input_cont flexed"><input id="fillShape" type="checkbox" checked /><div class="input_style"></div><span>Заливка</span></label>';
   }
 });
 
@@ -1665,15 +1704,15 @@ $('#undoButton').click(function(){
   }
 });
 
-$('#zoominButton').click(function(){scale2 += 0.2; if (scale1+scale2>4) scale2=4-scale1; scale = scale1+scale2; updateZoom(1);});
-$('#zoomoutButton').click(function(){scale2 -= 0.2; if (scale1+scale2<0.1) scale2=0.1-scale1; scale = scale1+scale2; updateZoom(-1);});
+$('#zoominButton').click(function(){scale2 += 0.2; if (scale>4) scale=4; updateZoom(scale);});
+$('#zoomoutButton').click(function(){scale2 -= 0.2; if (scale<0.1) scale=0.1; updateZoom(scale);});
 
 $('#zoom-info').click(function(){
-  scale2 = 0; canvX = 0; canvY = 0;
+  canvX = 0; canvY = 0;
   cl("in")[0].style.top = (canvY) + 'px';
   cl("in")[0].style.left = (canvX) + 'px';
-  scale = scale1 + scale2;
-  updateZoom();
+  if (main_x > main_y) scale = 1200 / main_x; else scale = 600 / main_y;
+  updateZoom(scale);
   if (ctrl && shift) {
     id("TEST").style.display = "flex";
     var blocks = cl("imgRotate");
@@ -1697,7 +1736,7 @@ id("lassoButton").addEventListener("click",function(){
   selectionButtons(3, this);
 });
 
-$(document).on("click", "#brush-size span", function(){
+$(document).on("click", "#brushSize span", function(){
   var block = id("size_slider");
   toggleVisible(block);
 })
@@ -1720,7 +1759,6 @@ $('#imagePropsButton').click(function(){
 $('.filter').click(function(){
   var mode = [].indexOf.call(cl("filter"), this);
   id("filterPower").value = 100;
-  console.log("Selected filter index is " + mode);
   var canvx = id("filterPreview");
   applyFilter(canvx, mode);
   colCorrect[4] = mode;
@@ -1774,15 +1812,14 @@ $("#addImage").click(function(){
     if (url == '') {
       msg.innerText = "Введите ссылку на изображение";
     } else {
-      msg.innerText = '';
       addImg.src = url;
       addImg.onerror = function() {
         if (!tried) {addImg.src = "https://cors-anywhere.herokuapp.com/"+url; tried = true; return;}
-        msg.innerText = "Невозможно загрузить изображение"; return;
+        else msg.innerText = "Невозможно загрузить изображение"; return;
       }
       addImg.onload = function (e) {
         msg.innerText = '';
-        addImage(url);
+        addImage(addImg.src);
       }
     }
   }
@@ -1910,7 +1947,7 @@ $("#textButton").click(function(){
       cl("imgRotate")[0].style.display = "";
       adding = 2;
       resetInstrument();
-    instBlock.innerHTML = '<div class="imgApply flexed"><span></span></div><div class="imgCancel flexed">×</div>   <label class="fontSize"><div>T<span>↕</span></div><input type="number" min="0" id="fontSize" placeholder="px"/></label>   <select id="fontStyle" style="margin:0px 10px;"><option style="font-family:Arial, sans-serif;" value="Arial, sans-serif">Arial</option> <option style="font-family:TimesNewRoman, sans;" value="TimesNewRoman, sans">Times New Roman</option> <option style="font-family:Impact, sans-serif;" value="Impact, sans-serif">Impact</option> <option style="font-family:ComicSans, cursive, sans-serif" value="ComicSans, cursive, sans-serif">Comic Sans</option></select><label class="input-cont flexed"><input id="strokeText" type="checkbox" /><div class="input-style"></div><span>Обводка текста</span></label><label class="input-cont flexed"><input id="boldText" type="checkbox" /><div class="input-style"></div><span>Жирный</span></label><label class="input-cont flexed"><input id="italicText" type="checkbox" /><div class="input-style"></div><span>Курсив</span></label>';
+    instBlock.innerHTML = '<div class="imgApply flexed"><span></span></div><div class="imgCancel flexed">×</div>   <label class="fontSize"><div>T<span>↕</span></div><input type="number" min="0" id="fontSize" placeholder="px"/></label>   <select id="fontStyle" style="margin:0px 10px;"><option style="font-family:Arial, sans-serif;" value="Arial, sans-serif">Arial</option> <option style="font-family:TimesNewRoman, sans;" value="TimesNewRoman, sans">Times New Roman</option> <option style="font-family:Impact, sans-serif;" value="Impact, sans-serif">Impact</option> <option style="font-family:ComicSans, cursive, sans-serif" value="ComicSans, cursive, sans-serif">Comic Sans</option></select><label class="input_cont flexed"><input id="strokeText" type="checkbox" /><div class="input_style"></div><span>Обводка текста</span></label><label class="input_cont flexed"><input id="boldText" type="checkbox" /><div class="input_style"></div><span>Жирный</span></label><label class="input_cont flexed"><input id="italicText" type="checkbox" /><div class="input_style"></div><span>Курсив</span></label>';
     id("fontSize").value = InImg.textSize;
     id("fontStyle").selectedIndex = InImg.textFont;
     id("strokeText").checked = InImg.textStroke;
@@ -2273,6 +2310,11 @@ id("downloadQuality").addEventListener("change", function() {
   getDownloadBase64();
 });
 
+id("TEST").addEventListener("click", function(){
+  toClipboard();
+});
+
 resetInstrument();
+updateZoom(0.9);
 
  });
