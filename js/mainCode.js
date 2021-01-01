@@ -1375,20 +1375,24 @@ function getDownloadBase64() {
   id("fileSize").innerText = '~ ' + sizeInBytes + step;
 }
 
-function toClipboard() {
-  var canv = canvas;
-  if (Selection.points != false) {
-    canv = document.createElement('canvas');
-    var c = canv.getContext('2d');
+function toClipboard(sel = false, bg = false) {
+  var canv = document.createElement('canvas');
+  var c = canv.getContext('2d');
+  if (sel) {
     canv.width = Selection.width; canv.height = Selection.height;
+    c.fillStyle = bgColor;
+    if (bg) c.fillRect(0,0,canv.width,canv.height);
     c.drawImage(canvas, -Selection.left, -Selection.top);
   } else {
-
+    canv.width = main_x; canv.height = main_y;
+    c.fillStyle = bgColor;
+    if (bg) c.fillRect(0,0,canv.width,canv.height);
+    c.drawImage(canvas, 0, 0);
   }
   canv.toBlob(blob=>{
     navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
-    if (Selection.points != false) toastMsg("Выделенная область скопирована")
-    else toastMsg("Скопирован весь холст");
+    if (sel) toastMsg("Выделенная область скопирована в буфер обмена")
+    else toastMsg("Весь холст скопирован в буфер обмена");
   });
   removeSelection();
 }
@@ -1454,8 +1458,9 @@ Array.prototype.forEach.call([id('copySel'), id('cutSel')], function(el, mode){
     canv.width = Selection.width;
     canv.height = Selection.height;
     canvx.imageSmoothingEnabled = false;
-    addImg.width = canv.width;
-    addImg.height = canv.height;
+    //addImg.width = canv.width;
+    //addImg.height = canv.height;
+    toClipboard(true);
     var m = Selection.creatingType;
     if (m == 2) {
       canvx.ellipse(canv.width/2, canv.height/2, canv.width/2, canv.height/2, 0, 0, Math.PI*2);
@@ -2111,6 +2116,7 @@ id("downloadBtn").addEventListener("click", function(){
   link.href = base64;
   link.click();
   dl.globalAlpha = 1;
+  toastMsg("Началось скачивание изображения");
 });
 
 id("cropButton").addEventListener("click", function(){
@@ -2308,6 +2314,10 @@ id("openCurvesButton").addEventListener('click',function() {
 
 id("downloadQuality").addEventListener("change", function() {
   getDownloadBase64();
+});
+
+id("copyBtn").addEventListener("click", function(){
+  toClipboard(false, true);
 });
 
 id("TEST").addEventListener("click", function(){
