@@ -163,7 +163,7 @@
     </div>
   </div>
 
-  <div class="layers_container visible">
+  <div class="layers_container flexed visible">
     <div class="show-hide-btn flexed">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 60 255 255" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" style="width: 0.4em;"><path fill="currentColor" d="M120 121l-116 118q-9 8 0 17l7 7q8 9 17 0l100 -102l100 102q9 8 17 0l7 -7q9 -9 0 -17l-116 -118q-8 -8 -16 0z"></path></svg>
     </div>
@@ -187,12 +187,15 @@
         Гистограмма
       </div>
     </div>
+    <div class="paint_info flexed">
+      <div class="btn flexed" id="openHotkeysButton">Горячие клавиши</div>
+    </div>
   </div>
 
     <div class="overlay_container flexed">
       <div class="overlay_dark"></div>
       <div class="overlay">
-        <div class="flexed" id="addImg_container">
+        <div id="addImg_container" class="flexed overflow_box">
           <h3>Добавить изображение</h3>
           <div class="flexed" style="width: 100%;"><input name="file" type="radio" value="file" /><input id="imageFile" style="color: white;" type="file" /></div>
           <div class="flexed" style="margin: 6px 0px; width: 100%;"><input checked="" name="file" type="radio" value="url" /><input id="imageLink" placeholder="Вставьте ссылку на изображение" type="text" /></div>
@@ -204,7 +207,7 @@
             <div id="imageHistory" class="flexed"></div>
           </div>
         </div>
-        <div class="flexed" id="editCanvas_container">
+        <div id="editCanvas_container" class="flexed overflow_box">
           <h3>Параметры нового холста</h3>
           <div class="dim_presets" style="display: inherit;">
             <div class="btn dim_preset">1920x1080 [FHD]</div>
@@ -229,7 +232,7 @@
           <div class="btn" id="updateCanvas">Создать холст</div>
           <span class="errorText">Создание нового холста полностью очистит старый холст</span>
         </div>
-        <div id="filters_container" class="flexed">
+        <div id="filters_container" class="flexed overflow_box">
           <h3>Фильтры</h3>
           <div class="filters_in flexed">
             <div class="filters_table flexed">
@@ -261,7 +264,7 @@
             <div class="btn" id="applyFilter">Применить фильтр</div>
           </div>
         </div>
-        <div id="download_container" class="flexed">
+        <div id="download_container" class="flexed overflow_box">
           <h3>Скачать изображение</h3>
           <label class="flexed downloadName">Название файла:
             <input id="downloadName" type="text" placeholder="mordegaard-paint"/>
@@ -284,7 +287,7 @@
             <div class="btn" id="copyBtn" title="Скопировать весь холст">Скопировать</div>
           </div>
         </div>
-        <div id="blur_container" class="flexed">
+        <div id="blur_container" class="flexed overflow_box">
           <h3>Галерея размытий</h3>
           <div class="flexed" style="width: 100%;">
             <ul class="blur_list">
@@ -298,7 +301,7 @@
             <div class="btn" id="applyBlurBtn">Применить</div>
           </div>
         </div>
-        <div id="histogram_container" class="flexed">
+        <div id="histogram_container" class="flexed overflow_box">
           <h3>Гистограмма</h3>
           <div style="position: relative; margin: 0px 60px; height: 512px;">
             <canvas id="histogramPreview" width="512" height="512" style="background: rgba(0,0,0,0.2);"></canvas>
@@ -307,7 +310,7 @@
             <span class="hist" id="hist3">-</span>
           </div>
         </div>
-        <div id="curves_container" class="flexed">
+        <div id="curves_container" class="flexed overflow_box">
           <h3>Кривые</h3>
           <span>ЛКМ - добавить/удалить точку</span>
           <div class="flexed" style="margin: 10px 0px;">
@@ -322,6 +325,10 @@
           </div>
           <div class="btn" id="applyCurvesBtn">Применить</div>
         </div>
+        <div id="hotkeys_container" class="flexed overflow_box">
+          <h3>Горячие клавиши</h3>
+          :(
+        </div>
       </div>
     </div>
     <div id="dropImg" class="flexed">
@@ -331,8 +338,7 @@
       </div>
     </div>
   </div>
-  <div id="toastContainer">
-  </div>
+  <div id="toastContainer"></div>
   </div>
 </body>
 </html>

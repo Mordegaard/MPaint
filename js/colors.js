@@ -80,12 +80,15 @@ function updateSelector() {
 $(document).ready(function() {
   var bg = document.getElementById('bg_canvas').getContext('2d');
   document.getElementById("colorSquare").addEventListener("mousedown", function(){
+    color_sqr(event);
     document.addEventListener("mousemove", color_sqr, false);
   });
   document.getElementById("colorLine").addEventListener("mousedown", function(){
+    color_line(event);
     document.addEventListener("mousemove", color_line, false);
   });
   document.getElementById("transparentLine").addEventListener("mousedown", function(){
+    transparent_line(event);
     document.addEventListener("mousemove", transparent_line, false);
   });
   document.addEventListener("mouseup", function(){
@@ -94,7 +97,7 @@ $(document).ready(function() {
     document.removeEventListener("mousemove", transparent_line);
   });
 
-  $('#updateBrush').click(function() {
+  document.getElementById("updateBrush").addEventListener("click", function(){
     if (value >= 75) $('#updateBrush').css('color', 'black')
     else $('#updateBrush').css('color', 'white');
     var color = hsv_to_rgb(hue, saturation, value);
@@ -106,7 +109,7 @@ $(document).ready(function() {
     red1 = color[0]; green1 = color[1]; blue1 = color[2];
   });
 
-  $('#updateBrush2').click(function() {
+  document.getElementById("updateBrush2").addEventListener("click", function(){
     if (value >= 75) $('#updateBrush2').css('color', 'black')
     else $('#updateBrush2').css('color', 'white');
     var color = hsv_to_rgb(hue, saturation, value);
@@ -118,7 +121,7 @@ $(document).ready(function() {
     red2 = color[0]; green2 = color[1]; blue2 = color[2];
   });
 
-  $('#updateBackground').click(function() {
+  document.getElementById("updateBackground").addEventListener("click", function(){
     if (value >= 75) $('#updateBackground').css('color', 'black')
     else $('#updateBackground').css('color', 'white');
     var color = hsv_to_rgb(hue, saturation, value);

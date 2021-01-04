@@ -37,7 +37,6 @@ var x1, x2, y1, y2, canvX=0, canvY=0;
 var shift = false, ctrl = false, reservedBool = false;
 var addImg = new Image(), bgImg = new Image(); addImg.setAttribute("crossorigin", "anonymous");
 var saved_inst = "", scale = 1, brushCoords = [[],[]];
-var overlay = [id("addImg_container"), id("editCanvas_container"), id("filters_container"), id("download_container"), id("blur_container"), id("histogram_container"), id("curves_container")];
 main_x = canvas.width; main_y = canvas.height;
 var colCorrect = [0,0,0,0,0], tempData;
 var circle = null;
@@ -1379,10 +1378,7 @@ function toClipboard(sel = false, bg = false) {
   var canv = document.createElement('canvas');
   var c = canv.getContext('2d');
   if (sel) {
-    canv.width = Selection.width; canv.height = Selection.height;
-    c.fillStyle = bgColor;
-    if (bg) c.fillRect(0,0,canv.width,canv.height);
-    c.drawImage(canvas, -Selection.left, -Selection.top);
+    canv = sel;
   } else {
     canv.width = main_x; canv.height = main_y;
     c.fillStyle = bgColor;
@@ -1395,6 +1391,13 @@ function toClipboard(sel = false, bg = false) {
     else toastMsg("Весь холст скопирован в буфер обмена");
   });
   removeSelection();
+}
+
+function openOverflowBox(name) {
+  toggleVisible(cl("overlay_container")[0]);
+  var block = cl("overlay")[0];
+  for (var i=0; i<block.children.length; i++) block.children[i].style.display = "none";
+  id(name).style.display = "flex";
 }
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1458,9 +1461,6 @@ Array.prototype.forEach.call([id('copySel'), id('cutSel')], function(el, mode){
     canv.width = Selection.width;
     canv.height = Selection.height;
     canvx.imageSmoothingEnabled = false;
-    //addImg.width = canv.width;
-    //addImg.height = canv.height;
-    toClipboard(true);
     var m = Selection.creatingType;
     if (m == 2) {
       canvx.ellipse(canv.width/2, canv.height/2, canv.width/2, canv.height/2, 0, 0, Math.PI*2);
@@ -1477,13 +1477,11 @@ Array.prototype.forEach.call([id('copySel'), id('cutSel')], function(el, mode){
       canvx.clip();
     }
     canvx.drawImage(canvas, -Selection.left, -Selection.top);
-    var url = canv.toDataURL();
-    addImage(url);
     if (mode) {
       ctx.clearRect(Selection.left, Selection.top, Selection.width, Selection.height);
       Selection.cut = true;
     }
-    removeSelection();
+    toClipboard(canv);
   });
 });
 
@@ -1773,10 +1771,7 @@ $('.filter').click(function(){
 });
 
 $('#downloadButton').click(function(){
-  var block = cl("overlay_container")[0];
-  toggleVisible(block);
-  for (var i=0; i<overlay.length; i++) overlay[i].style.display = "none";
-  id("download_container").style.display = "flex";
+  openOverflowBox("download_container");
   getDownloadBase64();
 });
 
@@ -1787,10 +1782,7 @@ $(".layers_container .show-hide-btn").click(function(){
 
 $("#imageButton").click(function(){
   if (!adding) {
-    var block = cl("overlay_container")[0];
-    toggleVisible(block);
-    for (var i=0; i<overlay.length; i++) overlay[i].style.display = "none";
-    id("addImg_container").style.display = "flex";
+    openOverflowBox("addImg_container");
     id("imageLink").focus(); id("imageLink").select();
   }
 });
@@ -2061,20 +2053,14 @@ id("updateCanvas").addEventListener("click", function(){
 
 id("newCanvasButton").addEventListener("click", function(){
   if (!adding) {
-    var block = cl("overlay_container")[0];
-    toggleVisible(block);
-    for (var i=0; i<overlay.length; i++) overlay[i].style.display = "none";
-    id("editCanvas_container").style.display = "flex";
+    openOverflowBox("editCanvas_container");
     id("canvasWidth").value = main_x; id("canvasHeight").value = main_y;
     updateCanvasPreview();
   }
 });
 
 id("openFiltersButton").addEventListener("click", function(){
-  var block = cl("overlay_container")[0];
-  toggleVisible(block);
-  for (var i=0; i<overlay.length; i++) overlay[i].style.display = "none";
-  id("filters_container").style.display = "flex";
+  openOverflowBox("filters_container");
   var canv = id("filterPreview");
   var canvx = canv.getContext('2d');
   if (canvas.width > canvas.height) {canv.width = 400; canv.height = 400 * (canvas.height/canvas.width);}
@@ -2085,6 +2071,10 @@ id("openFiltersButton").addEventListener("click", function(){
   tempData = canvx.getImageData(0,0,canv.width,canv.height);
   var blocks = cl("filter");
   for (var i=0; i<blocks.length; i++) blocks[i].getElementsByTagName("span")[0].style.background = "";
+});
+
+id("openHotkeysButton").addEventListener("click", function(){
+  openOverflowBox("hotkeys_container");
 });
 
 id("applyFilter").addEventListener("click", function(){
@@ -2158,10 +2148,7 @@ id("blurPower").addEventListener('change',function(){
 });
 
 id("openBlurButton").addEventListener('click',function(){
-  var block = cl("overlay_container")[0];
-  toggleVisible(block);
-  for (var i=0; i<overlay.length; i++) overlay[i].style.display = "none";
-  id("blur_container").style.display = "flex";
+  openOverflowBox("blur_container");
   id("blurPower").value = 0;
   var canv = id("blurPreview");
   var canvx = canv.getContext('2d');
@@ -2193,10 +2180,7 @@ id("applyBlurBtn").addEventListener('click',function(){
 });
 
 id("openHistogramButton").addEventListener('click',function() {
-  var block = cl("overlay_container")[0];
-  toggleVisible(block);
-  for (var i=0; i<overlay.length; i++) overlay[i].style.display = "none";
-  id("histogram_container").style.display = "flex";
+  openOverflowBox("histogram_container");
   generateHistogram();
 });
 
@@ -2275,10 +2259,7 @@ id("applyCurvesBtn").addEventListener('click',function() {
 });
 
 id("openCurvesButton").addEventListener('click',function() {
-  var block = cl("overlay_container")[0];
-  toggleVisible(block);
-  for (var i=0; i<overlay.length; i++) overlay[i].style.display = "none";
-  id("curves_container").style.display = "flex";
+  openOverflowBox("curves_container");
   id("curveWhite").checked = true;
   var canv = id("curvesPreview");
   var canvx = canv.getContext('2d');
