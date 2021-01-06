@@ -180,11 +180,9 @@ function drawLine(context) {
   var angle = getAngle(x1,y1,x2,y2);
   if (shift) {
     if (Math.abs(Math.cos(angle)) > 0.707) {
-      x2 = event.pageX - $('#main_canvas').offset().left;
       y2 = y1;
     } else {
       x2 = x1;
-      y2 = event.pageY - $('#main_canvas').offset().top;
     }
   }
   context.clearRect(0,0,main_x,main_y);
@@ -313,7 +311,9 @@ function imgResize(event, wR, hR) {
 
 function imgRotate(event) {
   var y2 = (event.pageY - $('#main_canvas').offset().top)/scale;
-  var h = (y2 - y1) / 2;
+  var x2 = (event.pageX - $('#main_canvas').offset().left)/scale;
+  var x = InImg.left + InImg.width/2, y = InImg.top + InImg.height/2;
+  var h = getAngle(x, y, x2, y2) / 3.141592 * 180;
   InImg.angle = h;
   if (adding == 1) {
     id("fullImageBorder").style.transform = 'rotate('+h+'deg)';
@@ -1358,7 +1358,7 @@ function getDownloadBase64() {
   dl.drawImage(id('undo_canvas1'),0,0);
   var mm, fm;
   if (id("jpg").checked) {mm="image/jpeg";}
-    else if (id("png").checked) {mm="image/webp";}
+    else if (id("png").checked) {mm="image/png";}
       else if (id("webp").checked) {mm="image/webp";}
   var q = id("downloadQuality").value / 10;
   base64 = id('dl_canvas').toDataURL(mm, q);
@@ -1391,6 +1391,7 @@ function toClipboard(sel = false, bg = false) {
     else toastMsg("Весь холст скопирован в буфер обмена");
   });
   removeSelection();
+  Selection.creating = false;
 }
 
 function openOverflowBox(name) {
@@ -1400,20 +1401,51 @@ function openOverflowBox(name) {
   id(name).style.display = "flex";
 }
 
+function copyCut(mode) {
+  var canv = document.createElement('canvas');
+  var canvx = canv.getContext('2d');
+  canv.width = Selection.width;
+  canv.height = Selection.height;
+  canvx.imageSmoothingEnabled = false;
+  var m = Selection.creatingType;
+  if (m == 2) {
+    canvx.ellipse(canv.width/2, canv.height/2, canv.width/2, canv.height/2, 0, 0, Math.PI*2);
+    canvx.clip();
+  }
+  else if (m == 3) {
+    var arr = Selection.points;
+    canvx.beginPath();
+    canvx.moveTo(arr[0]-Selection.left,arr[1]-Selection.top);
+    for (var i=2; i<arr.length-3; i+=2) {
+      canvx.lineTo(arr[i]-Selection.left, arr[i+1]-Selection.top);
+    }
+    canvx.closePath();
+    canvx.clip();
+  }
+  canvx.drawImage(canvas, -Selection.left, -Selection.top);
+  if (mode) {
+    ctx.clearRect(Selection.left, Selection.top, Selection.width, Selection.height);
+    Selection.cut = true;
+  }
+  toClipboard(canv);
+}
+
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 document.addEventListener('keydown', function(event) {
-  if (event.shiftKey) {
-    shift = true;
-  }
+  if (event.shiftKey) {shift = true;}
   if (event.ctrlKey || event.metaKey) {ctrl = true; updateCursor(-2);}
+
   if (event.code == "Space") {$("#colorButton").click();}
   if (event.code == 'KeyX') {swapColors();}
   if (event.code == 'Enter' && adding) {$(".imgApply")[0].click();}
-  if (event.code == 'Escape' && adding) {$(".imgCancel")[0].click();}
+  if (event.code == 'Escape') {
+    if (adding) $(".imgCancel")[0].click();
+    if (Selection.points != false) {removeSelection(0); Selection.creating = false;}
+  }
   if (event.code == 'KeyB') {id("brushButton").click();}
   if (event.code == 'KeyG') {id("fillButton").click();}
   if (event.code == 'KeyE') {id("eraserButton").click();}
@@ -1424,6 +1456,8 @@ document.addEventListener('keydown', function(event) {
   if (event.code == 'KeyZ' && ctrl) {
     event.preventDefault(); id("undoButton").click();
   }
+  if (event.code == 'KeyC' && ctrl && Selection.points != false) {copyCut(0);}
+  if (event.code == 'KeyX' && ctrl && Selection.points != false) {copyCut(1);}
   //console.log(event.code);
 });
 
@@ -1456,32 +1490,7 @@ document.addEventListener('wheel', function(event) {
 
 Array.prototype.forEach.call([id('copySel'), id('cutSel')], function(el, mode){
   el.addEventListener('mousedown', function(){
-    var canv = document.createElement('canvas');
-    var canvx = canv.getContext('2d');
-    canv.width = Selection.width;
-    canv.height = Selection.height;
-    canvx.imageSmoothingEnabled = false;
-    var m = Selection.creatingType;
-    if (m == 2) {
-      canvx.ellipse(canv.width/2, canv.height/2, canv.width/2, canv.height/2, 0, 0, Math.PI*2);
-      canvx.clip();
-    }
-    else if (m == 3) {
-      var arr = Selection.points;
-      canvx.beginPath();
-      canvx.moveTo(arr[0]-Selection.left,arr[1]-Selection.top);
-      for (var i=2; i<arr.length-3; i+=2) {
-        canvx.lineTo(arr[i]-Selection.left, arr[i+1]-Selection.top);
-      }
-      canvx.closePath();
-      canvx.clip();
-    }
-    canvx.drawImage(canvas, -Selection.left, -Selection.top);
-    if (mode) {
-      ctx.clearRect(Selection.left, Selection.top, Selection.width, Selection.height);
-      Selection.cut = true;
-    }
-    toClipboard(canv);
+    copyCut(mode);
   });
 });
 
@@ -2289,6 +2298,8 @@ id("openCurvesButton").addEventListener('click',function() {
 [].forEach.call(document.getElementsByName("format"), function(el, ind) {
   el.addEventListener('click', function() {
     id("fileFormat").innerText = '.' + this.value;
+    if (!ind) id("downloadQuality").disabled = true;
+    else id("downloadQuality").disabled = false;
     getDownloadBase64();
   });
 });
