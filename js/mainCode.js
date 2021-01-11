@@ -498,7 +498,7 @@ function addImage(url) {
       InImg.top = (main_y - h)/2;
       InImg.left = (main_x - w)/2;
       InImg.angle = 0;
-      cl("overlay_container")[0].classList.remove("visible");
+      id("overlay_container").classList.remove("visible");
       id("fullImageBorder").style.transform = '';
       $("#imageBorder").css({
         "display":"block",
@@ -1395,7 +1395,7 @@ function toClipboard(sel = false, bg = false) {
 }
 
 function openOverflowBox(name) {
-  toggleVisible(cl("overlay_container")[0]);
+  toggleVisible(id("overlay_container"));
   var block = cl("overlay")[0];
   for (var i=0; i<block.children.length; i++) block.children[i].style.display = "none";
   id(name).style.display = "flex";
@@ -1443,8 +1443,9 @@ document.addEventListener('keydown', function(event) {
   if (event.code == 'KeyX') {swapColors();}
   if (event.code == 'Enter' && adding) {$(".imgApply")[0].click();}
   if (event.code == 'Escape') {
-    if (adding) $(".imgCancel")[0].click();
-    if (Selection.points != false) {removeSelection(0); Selection.creating = false;}
+    if (id("overlay_container").classList.contains("visible")) {cl("overlay_dark")[0].click(); return;}
+    if (adding) {$(".imgCancel")[0].click(); return;}
+    if (Selection.points != false) {removeSelection(0); Selection.creating = false; return;}
   }
   if (event.code == 'KeyB') {id("brushButton").click();}
   if (event.code == 'KeyG') {id("fillButton").click();}
@@ -1458,6 +1459,8 @@ document.addEventListener('keydown', function(event) {
   }
   if (event.code == 'KeyC' && ctrl && Selection.points != false) {copyCut(0);}
   if (event.code == 'KeyX' && ctrl && Selection.points != false) {copyCut(1);}
+  if (event.code == 'KeyS' && ctrl) {event.preventDefault(); id("downloadButton").click();}
+  if (event.code == 'KeyO' && ctrl) {event.preventDefault(); id("newCanvasButton").click();}
   //console.log(event.code);
 });
 
@@ -1792,13 +1795,15 @@ $(".layers_container .show-hide-btn").click(function(){
 $("#imageButton").click(function(){
   if (!adding) {
     openOverflowBox("addImg_container");
-    id("imageLink").focus(); id("imageLink").select();
+    var input = id("imageLink");
+    if (input.value){
+      input.focus(); input.select();
+    }
   }
 });
 
 $(".overlay_dark").click(function(){
-  var block = cl("overlay_container")[0];
-  toggleVisible(block);
+  toggleVisible(id("overlay_container"));
 });
 
 $("#addImage").click(function(){
@@ -2056,8 +2061,7 @@ id("updateCanvas").addEventListener("click", function(){
   if (checker.checked) {
     ctx.drawImage(bgImg,0,0);
   }
-  var block = cl("overlay_container")[0];
-  toggleVisible(block);
+  toggleVisible(id("overlay_container"));
 });
 
 id("newCanvasButton").addEventListener("click", function(){
@@ -2088,8 +2092,7 @@ id("openHotkeysButton").addEventListener("click", function(){
 
 id("applyFilter").addEventListener("click", function(){
   applyFilter(canvas, colCorrect[4]);
-  var block = cl("overlay_container")[0];
-  toggleVisible(block);
+  toggleVisible(id("overlay_container"));
 });
 
 id("filterPower").addEventListener("change", function(){
@@ -2180,7 +2183,7 @@ id("openBlurButton").addEventListener('click',function(){
 id("applyBlurBtn").addEventListener('click',function(){
   ctx.globalAlpha = tr1; un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
   var weight = id("blurPower").value;
-  toggleVisible(cl("overlay_container")[0]);
+  toggleVisible(id("overlay_container"));
   var mode = 0;
   [].forEach.call(document.getElementsByName("blur"), (el, ind) => {
     if (el.checked) mode = ind;
@@ -2254,7 +2257,7 @@ $(".curve_channels").click(function(){
 
 id("applyCurvesBtn").addEventListener('click',function() {
   ctx.globalAlpha = tr1; un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
-  toggleVisible(cl("overlay_container")[0]);
+  toggleVisible(id("overlay_container"));
   var vals = [];
   for (var i=0; i < 256; i++) {vals[i] = CSPL.evalSpline(i, cx, cy, ck);}
   var data = ctx.getImageData(0,0,main_x,main_y);
