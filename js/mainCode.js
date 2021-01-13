@@ -604,7 +604,7 @@ function penBrush(mode) {
       newArr.push(arr[arr.length-1]);
       return newArr;
     }
-    for (var i=0; i<4; i++) {
+    for (var i=0; i<5; i++) {
       nbx = smooth(nbx); nby = smooth(nby);
     }
     for (var i = 0; i < nbx.length; i++) {
@@ -1719,8 +1719,8 @@ $('#undoButton').click(function(){
   }
 });
 
-$('#zoominButton').click(function(){scale2 += 0.2; if (scale>4) scale=4; updateZoom(scale);});
-$('#zoomoutButton').click(function(){scale2 -= 0.2; if (scale<0.1) scale=0.1; updateZoom(scale);});
+$('#zoominButton').click(function(){scale += 0.2; if (scale>4) scale=4; updateZoom(scale);});
+$('#zoomoutButton').click(function(){scale -= 0.2; if (scale<0.1) scale=0.1; updateZoom(scale);});
 
 $('#zoom-info').click(function(){
   canvX = 0; canvY = 0;
@@ -1935,7 +1935,7 @@ $(document).on('click', ".imgApply", function(){
     ctx.closePath();
   } else if (adding == 3) {
     var D = ctx.getImageData(InImg.left, InImg.top, Math.abs(InImg.left)+InImg.width-2, Math.abs(InImg.top)+InImg.height-2);
-    updateCanvas(InImg.width-2, InImg.height-2);
+    updateCanvas(InImg.width, InImg.height);
     ctx.putImageData(D,0,0);
     id("imageBorder").style.display = "none";
     canvas.style.filter = ""; id('bg_canvas').style.filter = "";

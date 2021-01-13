@@ -402,7 +402,10 @@ pointer-events: none;
   background: var(--ui-col);
 }
 
-#inst_settings {height: 100%;}
+#inst_settings {
+  height: 100%;
+  margin-left: 10px;
+}
 
 #bg_canvas {background: center / 1% url(images/transparent-bg.jpg);}
 
@@ -846,7 +849,7 @@ input[type="radio"] {
   top:50%; left: 4px;
   transform: translateY(-50%);
 }
-.fontSize div span {margin: -4px 0 0 -2px; transform: scale(0.8);}
+.fontSize div span {margin: -4px 0 0 -2px; transform: scale(0.82);}
 
 #filters_container, #download_container {display: none;}
 #filters_container .filters_table {
