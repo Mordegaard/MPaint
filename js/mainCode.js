@@ -196,7 +196,8 @@ function drawLine(context) {
     context.lineCap = "round";
     context.save();
     context.translate(x2,y2);
-    context.rotate(angle);
+    if (shift) context.rotate(getAngle(x1,y1,x2,y2));
+    else context.rotate(angle);
     context.beginPath();
     context.moveTo(size,0);
     context.lineTo(-size*2,-size);
@@ -220,7 +221,7 @@ function drawLine(context) {
 function drawRect(context) {
   x2 = (event.pageX - $('#main_canvas').offset().left)/scale;
   y2 = (event.pageY - $('#main_canvas').offset().top)/scale;
-  var xt = x1, yt = y1, s;
+  var s;
   context.clearRect(0,0,main_x,main_y);
   context.beginPath();
   if (id("fillShape").checked) context.fillStyle = 'rgb('+red1+','+green1+','+blue1+','+tr1+')';
@@ -228,10 +229,15 @@ function drawRect(context) {
   context.strokeStyle = 'rgb('+red2+','+green2+','+blue2+','+tr11+')';
   if (id("strokeShape").checked) {s = size;} else {s=0;}
   context.lineWidth = s;
-  var Y = (y2-yt);
-  if (shift) {Y = (x2-xt); if (x2 < x1) {xt = x2; x2 = x1; Y = (xt-x2);}}
-  context.fillRect(xt, yt, (x2-xt), Y);
-  if (id("strokeShape").checked) {context.strokeRect(xt ,yt, (x2-xt), Y);}
+  var Y = (y2-y1), X = (x2-x1);
+  if (shift) {
+    X = Math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1))/Math.sqrt(2);
+    Y = X;
+    if (x2 < x1) X = -X;
+    if (y2 < y1) Y = -Y;
+  }
+  context.fillRect(x1, y1, X, Y);
+  if (id("strokeShape").checked) {context.strokeRect(x1 ,y1, X, Y);}
   context.closePath();
 }
 
@@ -585,7 +591,7 @@ function penBrush(mode) {
       spx.push(Math.abs(brushCoords[0][i] - brushCoords[0][i-1]));
       spy.push(Math.abs(brushCoords[1][i] - brushCoords[1][i-1]));
     }
-    var speed = (median(spx) + median(spy)) / 3;
+    var speed = (median(spx) + median(spy)) / 2.25;
     if (speed > 8) speed = 8;
     speed = Math.round(9-speed);
     for (var i=0; i<brushCoords[0].length; i+=speed) {
@@ -604,7 +610,7 @@ function penBrush(mode) {
       newArr.push(arr[arr.length-1]);
       return newArr;
     }
-    for (var i=0; i<5; i++) {
+    for (var i=0; i<6; i++) {
       nbx = smooth(nbx); nby = smooth(nby);
     }
     for (var i = 0; i < nbx.length; i++) {
@@ -1073,20 +1079,25 @@ id("pagemax").addEventListener('drop', function(e){
 
 function flip(horizontal = false, vertical = false) {
   ctx.globalAlpha = 1; un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
-  var img = new Image();
-  img.onload = function() {
-    ctx.save();
-    ctx.setTransform(
-      horizontal ? -1 : 1, 0,
-      0, vertical ? -1 : 1,
-      (horizontal ? main_x : 0),
-      (vertical ? main_y : 0)
-    );
-    ctx.clearRect(0,0,main_x,main_y);
-    ctx.drawImage(img,0,0);
-    ctx.restore();
+  var canv = document.createElement('canvas');
+  var canvx = canv.getContext('2d');
+  var top = 0, left = 0;
+  if (Selection.points == false) {
+    canv.width = main_x; canv.height = main_y;
+  } else {
+    canv.width = Selection.width+2; canv.height = Selection.height+2;
+    top = Selection.top-1; left = Selection.left-1;
   }
-  img.src = canvas.toDataURL();
+  canvx.imageSmoothingEnabled = false;
+  canvx.setTransform(
+    horizontal ? -1 : 1, 0,
+    0, vertical ? -1 : 1,
+    (horizontal ? canv.width : 0),
+    (vertical ? canv.height : 0)
+  );
+  canvx.drawImage(canvas, -left, -top);
+  ctx.clearRect(top,left,canv.width,canv.height);
+  ctx.drawImage(canv,left,top);
 }
 
 function generateHistogram() {
@@ -1267,9 +1278,9 @@ function createSelection() {
 }
 
 function setSelection(c) {
-  var arr = Selection.points;
-  if (arr == false) {c.restore();}
-  else {
+  var arr = Selection.points; console.log(arr);
+  c.restore();
+  if (arr != false) {
     c.save();
     c.beginPath();
     var mode = Selection.creatingType;
