@@ -16,10 +16,10 @@ function cl(node) {
 var InImg = {
   top: 0, left: 0, width: 0, height: 0, angle: 0, prop: 1,
   textSize: 30, textFont: 0, textStroke: false, textBold: false, textItalic: false,
-}
+};
 var Selection = {
   top: 0, left: 0, width: 0, height: 0, points: [], creating: 0, creatingType: 0, btns: false, cut: false,
-}
+};
 var select, sel;
 
 var canvas = id('main_canvas');
@@ -30,7 +30,7 @@ var dl = id('dl_canvas').getContext('2d');
 var un2 = id('undo_canvas2');
 var un1 = id('undo_canvas1');
 var undo = un1.getContext('2d');
-var lastAct = false, adding = 0, correctingBool = false;
+var adding = 0, correctingBool = false;
 var isMoving = 0, isDrawing = 0, isSliding = 0;
 var instrument = 0;
 var x1, x2, y1, y2, canvX=0, canvY=0;
@@ -54,6 +54,61 @@ $('#l1').css('background','#348bee');
 bg.fillStyle = bgColor; bg.fillRect(0,0,main_x,main_y);
 ctx.imageSmoothingEnabled = false;
 bg.imageSmoothingEnabled = true;
+
+var ActionBuffer = {
+  actions: [],
+  max: 10,
+  count: 0,
+  position: 0,
+  adding: true,
+  addAction: function(needToCheckAdding = true) {
+    if (this.adding || !needToCheckAdding) {
+      this.count = this.position;
+      this.actions.splice(this.count, this.actions.length);
+      var action = {
+        width: canvas.width,
+        height: canvas.height,
+        base64: canvas.toDataURL()
+      };
+      this.actions.push(action);
+      this.count++;
+      if (this.count > this.max+1) {this.actions.splice(0,1); this.count--;}
+      this.position = this.count;
+      this.adding = false;
+      //console.log("added action. Count = " + this.count, this);
+    }
+  },
+  undo: function() {
+    if (this.position > 1) {
+      this.position--;
+      var act = this;
+      var img = new Image();
+      img.onload = function() {
+        canvas.width = act.actions[act.position-1].width;
+        canvas.height = act.actions[act.position-1].height;
+        canvas.imageSmoothingEnabled = false;
+        ctx.drawImage(img, 0, 0);
+      };
+      img.src = act.actions[act.position-1].base64;
+      //console.log("undoed action. Position = " + act.position, this);
+    }
+  },
+  redo: function() {
+    if (this.position < this.count) {
+      this.position++;
+      var act = this;
+      var img = new Image();
+      img.onload = function() {
+        canvas.width = act.actions[act.position-1].width;
+        canvas.height = act.actions[act.position-1].height;
+        canvas.imageSmoothingEnabled = false;
+        ctx.drawImage(img, 0, 0);
+      };
+      img.src = act.actions[act.position-1].base64;
+      //console.log("redoed action. Position = " + act.position, this);
+    }
+  }
+};
 
 function toastMsg(str) {
   var msg = document.createElement('div');
@@ -134,7 +189,7 @@ function drawing(context, event, x, y) {
   var Size = size;
   if (Size < 5) Size -= Math.trunc(Size/2);
   context.save();
-  if (instrument == 2) context.globalCompositeOperation = 'destination-out';
+  if (instrument == 2) {context.globalCompositeOperation = 'destination-out'; context.globalAlpha = 1;}
   else if (id("penType").selectedIndex) {brushCoords[0].push(x1/scale); brushCoords[1].push(y1/scale);}
   context.beginPath();
   context.lineWidth = 0;
@@ -668,7 +723,6 @@ function colorCorrection(mode) {
 }
 
 function applyColorCorrection() {
-  ctx.globalAlpha = tr1; un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
   var data = ctx.getImageData(0,0,main_x,main_y);
   var d = data.data;
   //КОНТРАСТ, ЯРКОСТЬ И ТЕМПЕРАТУРА//
@@ -723,14 +777,13 @@ function applyColorCorrection() {
   ctx.clearRect(0,0,main_x,main_y);
   ctx.putImageData(data,0,0);
   canvas.style.filter = "";
+  ActionBuffer.addAction(false);
 }
 
 function applyFilter(context, mode) {
   var power =  id("filterPower").value / 100;
   var c = context.getContext('2d');
-  if (context == canvas) {
-    ctx.globalAlpha = tr1; un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
-  } else if (context == id("filterPreview")) c.putImageData(tempData,0,0);
+  if (context == id("filterPreview")) c.putImageData(tempData,0,0);
   var data = c.getImageData(0,0,context.width,context.height);
   var d = data.data;
   var dOriginal = d.slice();
@@ -912,14 +965,15 @@ function applyFilter(context, mode) {
   }
   c.clearRect(0,0,context.width,context.height);
   c.putImageData(data,0,0);
+  if (context == canvas) {
+    ActionBuffer.addAction(false);
+  }
   return;
 }
 
 function applySharpness(context, mode, power, radius) {
   var c = context.getContext('2d');
-  if (context == canvas) {
-    ctx.globalAlpha = tr1; un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
-  } else if (context == id("filterPreview")) c.putImageData(tempData,0,0);
+  if (context == id("filterPreview")) c.putImageData(tempData,0,0);
   var data = c.getImageData(0,0,context.width,context.height);
   var d = data.data;
   var med;
@@ -948,6 +1002,10 @@ function applySharpness(context, mode, power, radius) {
   }
   c.clearRect(0,0,context.width,context.height);
   c.putImageData(data,0,0);
+  if (context == canvas) {
+    ActionBuffer.addAction(false);
+  }
+  return;
 }
 
 
@@ -1078,7 +1136,6 @@ id("pagemax").addEventListener('drop', function(e){
 });
 
 function flip(horizontal = false, vertical = false) {
-  ctx.globalAlpha = 1; un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
   var canv = document.createElement('canvas');
   var canvx = canv.getContext('2d');
   var top = 0, left = 0;
@@ -1098,6 +1155,8 @@ function flip(horizontal = false, vertical = false) {
   canvx.drawImage(canvas, -left, -top);
   ctx.clearRect(top,left,canv.width,canv.height);
   ctx.drawImage(canv,left,top);
+  ActionBuffer.addAction(false);
+  return;
 }
 
 function generateHistogram() {
@@ -1466,7 +1525,10 @@ document.addEventListener('keydown', function(event) {
   if (event.code == 'BracketLeft') {changeBrushSize(size-10);}
   if (event.code == 'BracketRight') {changeBrushSize(size+10);}
   if (event.code == 'KeyZ' && ctrl) {
-    event.preventDefault(); id("undoButton").click();
+    event.preventDefault(); ActionBuffer.undo();
+  }
+  if (event.code == 'KeyY' && ctrl) {
+    event.preventDefault(); ActionBuffer.redo();
   }
   if (event.code == 'KeyC' && ctrl && Selection.points != false) {copyCut(0);}
   if (event.code == 'KeyX' && ctrl && Selection.points != false) {copyCut(1);}
@@ -1510,15 +1572,12 @@ Array.prototype.forEach.call([id('copySel'), id('cutSel')], function(el, mode){
 
   un1.addEventListener("mousedown", function() {
     if (instrument != 6 && !ctrl && !correctingBool && !adding) {
-      un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
+      ActionBuffer.adding = true;
       if (!(instrument>2 && instrument < 6)) {ctx.globalAlpha = tr1; un1.style.opacity = tr1;}
       else {
         ctx.globalAlpha = 1; un1.style.opacity = 1;
       }
       isDrawing = 1;
-      if (instrument) {
-        ctx.drawImage(un1,0,0);
-      }
     }
     if (Selection.creatingType && !ctrl) {
       if (id('selectionCanvas')) id('selectionCanvas').remove();
@@ -1584,9 +1643,6 @@ Array.prototype.forEach.call([id('copySel'), id('cutSel')], function(el, mode){
 
   $(document).on("mouseup", function() {
     isDrawing = 0; isSliding = 0; isMoving = 0;
-    if (lastAct) {
-      un1.style.opacity = 1;
-    }
     if (instrument != 6) {
       if (!(instrument>2 && instrument<6))ctx.globalAlpha = tr1;
       if (instrument != 1) ctx.drawImage(un1,0,0); else {
@@ -1594,6 +1650,7 @@ Array.prototype.forEach.call([id('copySel'), id('cutSel')], function(el, mode){
         else penBrush(id("penType").selectedIndex);
       }
       undo.clearRect(0,0,main_x,main_y);
+      ActionBuffer.addAction();
     }
     if (Selection.creating) {
       Selection.creating = 0;
@@ -1607,11 +1664,11 @@ Array.prototype.forEach.call([id('copySel'), id('cutSel')], function(el, mode){
   });
 
   $(document).on("mousemove", function(event) {
-    if (isDrawing == 1) {if (instrument==3) {drawLine(undo); lastAct = false;}
-                         if (instrument==4) {drawRect(undo); lastAct = false;}
-                         if (instrument==5) {drawArc(undo); lastAct = false;}
-                         if (instrument==1) {lastAct = false; drawing(undo, event, ctxX, ctxY);}
-                         if (instrument==2) {lastAct = false; drawing(ctx, event, ctxX, ctxY);}
+    if (isDrawing == 1) {if (instrument==3) {drawLine(undo);}
+                         if (instrument==4) {drawRect(undo);}
+                         if (instrument==5) {drawArc(undo);}
+                         if (instrument==1) {drawing(undo, event, ctxX, ctxY);}
+                         if (instrument==2) {drawing(ctx, event, ctxX, ctxY);}
                         }
     if (isSliding) {
       if (isSliding == 1) {sliding();}
@@ -1640,9 +1697,8 @@ Array.prototype.forEach.call([id('copySel'), id('cutSel')], function(el, mode){
 
 $('#clearButton').click(function(){
   if (!adding) {
-    ctx.drawImage(un1, 0, 0); un2.getContext('2d').clearRect(0, 0, main_x, main_y);
-    un2.getContext('2d').drawImage(canvas, 0, 0);
-    ctx.clearRect(0, 0, main_x, main_y);   undo.clearRect(0, 0, main_x, main_y);
+    ctx.clearRect(0, 0, main_x, main_y); undo.clearRect(0, 0, main_x, main_y);
+    ActionBuffer.addAction(false);
   }
 });
 
@@ -1708,7 +1764,7 @@ $('#arcButton').click(function(){
   }
 });
 
-$('#pipetteButton').click(function(){
+id("pipetteButton").addEventListener("click", function(){
   if (instrument == 6) {resetInstrument(); return;}
   if (!adding && !correctingBool) {
     changeInst(this); instrument = 6;
@@ -1716,18 +1772,17 @@ $('#pipetteButton').click(function(){
   }
 });
 
-$('#colorButton').click(function(){
+id("colorButton").addEventListener("click", function(){
   var block = cl("color_square_container")[0];
   toggleVisible(block);
 });
 
-$('#undoButton').click(function(){
-  if (!lastAct) {
-    var temp1 = ctx.getImageData(0,0,main_x,main_y);
-    var temp2 = un2.getContext('2d').getImageData(0,0,main_x,main_y);
-    ctx.clearRect(0,0,main_x,main_y); ctx.putImageData(temp2,0,0);
-    un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').putImageData(temp1,0,0);
-  }
+id("undoButton").addEventListener("click", function(){
+  ActionBuffer.undo();
+});
+
+id("redoButton").addEventListener("click", function(){
+  ActionBuffer.redo();
 });
 
 $('#zoominButton').click(function(){scale += 0.2; if (scale>4) scale=4; updateZoom(scale);});
@@ -1884,10 +1939,6 @@ $(document).on('click', ".imgCancel", function(){
 });
 
 $(document).on('click', ".imgApply", function(){
-  if (!Selection.cut) {
-    un2.getContext('2d').clearRect(0,0,main_x,main_y);
-    un2.getContext('2d').drawImage(canvas,0,0);
-  }
   ctx.globalAlpha = 1;
   ctx.imageSmoothingEnabled = true;
   if (adding == 1) {
@@ -1954,13 +2005,16 @@ $(document).on('click', ".imgApply", function(){
     block.classList.remove("visible");
     var checker = id("pasteImg").getElementsByTagName("input")[0];
     checker.checked = false;
+    return;
   }
-
   instBlock.innerHTML = "";
   if (!correctingBool) {var blocks = cl("button");
                         for (var i=0; i<blocks.length; i++) blocks[i].style.color = "";}
   adding = 0;
   ctx.imageSmoothingEnabled = false;
+  if (!Selection.cut) {
+    ActionBuffer.addAction(false);
+  }
   Selection.cut = false;
 });
 
@@ -2192,7 +2246,6 @@ id("openBlurButton").addEventListener('click',function(){
 });
 
 id("applyBlurBtn").addEventListener('click',function(){
-  ctx.globalAlpha = tr1; un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
   var weight = id("blurPower").value;
   toggleVisible(id("overlay_container"));
   var mode = 0;
@@ -2200,6 +2253,7 @@ id("applyBlurBtn").addEventListener('click',function(){
     if (el.checked) mode = ind;
   });
   applyBlur(canvas, mode, weight);
+  ActionBuffer.addAction(false);
 });
 
 id("openHistogramButton").addEventListener('click',function() {
@@ -2267,7 +2321,6 @@ $(".curve_channels").click(function(){
 });
 
 id("applyCurvesBtn").addEventListener('click',function() {
-  ctx.globalAlpha = tr1; un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
   toggleVisible(id("overlay_container"));
   var vals = [];
   for (var i=0; i < 256; i++) {vals[i] = CSPL.evalSpline(i, cx, cy, ck);}
@@ -2279,6 +2332,7 @@ id("applyCurvesBtn").addEventListener('click',function() {
     d[i+2] = (512 - valsCW[d[i+2]] - valsCB[d[i+2]])/2;
   }
   ctx.putImageData(data,0,0);
+  ActionBuffer.addAction(false);
 });
 
 id("openCurvesButton").addEventListener('click',function() {
@@ -2332,5 +2386,6 @@ id("TEST").addEventListener("click", function(){
 
 resetInstrument();
 updateZoom(0.9);
+ActionBuffer.addAction();
 
  });

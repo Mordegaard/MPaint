@@ -18,10 +18,10 @@
 
       <div class="options flexed" style="margin-right: 20px;">
         <div class="button flexed" id="clearButton" title="Очистить холст"><img src="icons/trash-alt-solid.svg"></div>
-        <div class="button flexed" id="newCanvasButton" title="Создать новый холст"><img src="icons/file-image-solid.svg"></div>
+        <div class="button flexed" id="newCanvasButton" title="Создать новый холст [Ctrl + O]"><img src="icons/file-image-solid.svg"></div>
         <div class="v-line"></div>
-        <div class="button flexed" id="downloadButton" title="Скачать изображение"><img src="icons/download-solid.svg"></div>
-        <div class="button flexed" id="imageButton" title="Загрузить изображение"><img src="icons/images-solid.svg"></div>
+        <div class="button flexed" id="downloadButton" title="Скачать изображение [Ctrl + S]"><img src="icons/download-solid.svg"></div>
+        <div class="button flexed" id="imageButton" title="Добавить изображение"><img src="icons/images-solid.svg"></div>
       </div>
     </div>
 
@@ -51,7 +51,8 @@
     <div class="h-line"></div>
     <div class="button flexed" id="imagePropsButton" title="Настройки изображения"><img src="icons/sliders-h-solid.svg"></div>
     <div class="h-line"></div>
-    <div class="flexed button" id="undoButton" style="font-size: 1.5em;" title="Отменить/Вернуть [Ctrl + Z]">↺</div>
+    <div class="flexed button" id="undoButton" style="font-size: 1.5em; transform: rotate(-45deg);" title="Отменить [Ctrl + Z]">↺</div>
+    <div class="flexed button" id="redoButton" style="font-size: 1.5em; transform: rotate(45deg);" title="Вернуть [Ctrl + Y]">↻</div>
     <div class="flexed" id="colorButton" title="Палитра [Space]"><div style="background: var(--main-col);"></div></div>
     <div class="flexed" id="colors_container">
       <div class="color_square_container flexed">
@@ -331,7 +332,8 @@
             <p>Редактор</p>
             <ul>
               <li><div class="hotkey">Ctrl</div> + <div class="hotkey">0</div> — Сбросить масштаб и позицию холста</li>
-              <li><div class="hotkey">Ctrl</div> + <div class="hotkey">Z</div> — Отменить/вернуть</li>
+              <li><div class="hotkey">Ctrl</div> + <div class="hotkey">Z</div> — Отменить действие</li>
+              <li><div class="hotkey">Ctrl</div> + <div class="hotkey">Y</div> — Вернуть отменённое действие</li>
               <li><div class="hotkey">Ctrl</div> + <div class="hotkey">O</div> — Создать новый холст/Открыть изображение</li>
               <li><div class="hotkey">Ctrl</div> + <div class="hotkey">S</div> — Скачать изображение</li>
               <li><div class="hotkey">Space</div> — Палитра</li>
