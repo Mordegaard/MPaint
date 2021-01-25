@@ -27,7 +27,6 @@ var instBlock = id("inst_settings");
 var ctx = canvas.getContext('2d');
 var bg = id('bg_canvas').getContext('2d');
 var dl = id('dl_canvas').getContext('2d');
-var un2 = id('undo_canvas2');
 var un1 = id('undo_canvas1');
 var undo = un1.getContext('2d');
 var adding = 0, correctingBool = false;
@@ -75,39 +74,42 @@ var ActionBuffer = {
       if (this.count > this.max+1) {this.actions.splice(0,1); this.count--;}
       this.position = this.count;
       this.adding = false;
-      //console.log("added action. Count = " + this.count, this);
+      console.log("added action. Count = " + this.count, this);
     }
+  },
+  updateCanvas: function(){
+    var act = this;
+    var img = new Image();
+    var w = act.actions[act.position-1].width, h = act.actions[act.position-1].height;
+    img.onload = function() {
+      updateCanvas(w, h);
+      ctx.drawImage(img, 0, 0);
+    };
+    img.src = act.actions[act.position-1].base64;
   },
   undo: function() {
     if (this.position > 1) {
       this.position--;
-      var act = this;
-      var img = new Image();
-      img.onload = function() {
-        canvas.width = act.actions[act.position-1].width;
-        canvas.height = act.actions[act.position-1].height;
-        canvas.imageSmoothingEnabled = false;
-        ctx.drawImage(img, 0, 0);
-      };
-      img.src = act.actions[act.position-1].base64;
-      //console.log("undoed action. Position = " + act.position, this);
+      this.updateCanvas();
+      console.log("undoed action. Position = " + this.position, this);
     }
   },
   redo: function() {
     if (this.position < this.count) {
       this.position++;
-      var act = this;
-      var img = new Image();
-      img.onload = function() {
-        canvas.width = act.actions[act.position-1].width;
-        canvas.height = act.actions[act.position-1].height;
-        canvas.imageSmoothingEnabled = false;
-        ctx.drawImage(img, 0, 0);
-      };
-      img.src = act.actions[act.position-1].base64;
-      //console.log("redoed action. Position = " + act.position, this);
+      this.updateCanvas();
+      console.log("redoed action. Position = " + this.position, this);
     }
-  }
+  },
+  reset: function() {
+    this.count = 1; this.position = 1;
+    this.actions = [];
+    this.actions.push({
+      width: canvas.width,
+      height: canvas.height,
+      base64: canvas.toDataURL()
+    });
+  },
 };
 
 function toastMsg(str) {
@@ -366,7 +368,7 @@ function imgResize(event, wR, hR) {
   id("addedImage").style.width = (W+1) + "px";
   id("addedImage").style.height = (H+1) + "px";
   if (adding == 3) {
-    id("newRes").innerText = (id("imageBorder").offsetWidth-2) + 'x' + (id("imageBorder").offsetHeight-2);
+    id("newRes").innerText = (id("imageBorder").offsetWidth) + 'x' + (id("imageBorder").offsetHeight);
   }
 }
 
@@ -534,6 +536,7 @@ function fill() {
     c.getContext('2d').putImageData(data,0,0);
     ctx.drawImage(c, Selection.left, Selection.top);
   }
+  ActionBuffer.addAction(false);
 }
 
 function addImage(url) {
@@ -1025,26 +1028,19 @@ function updateCanvasPreview() {
 function updateCanvas(w, h) {
   var blocks = cl("canvases")[0].getElementsByTagName("canvas");
   for (var i=0; i<blocks.length; i++) {
-    blocks[i].width = w; blocks[i].height = h;
+    blocks[i].width = w;
+    blocks[i].height = h;
   }
-  main_x = canvas.width; main_y = canvas.height;
+  main_x = w; main_y = h;
   var bb = cl("canvases")[0];
-  bb.style.width = w+'px'; bb.style.height = h+'px'; bb.style.minWidth = w+'px';
+  bb.style.width = w+'px';
+  bb.style.height = h+'px';
+  bb.style.minWidth = w+'px';
   bg.fillStyle = bgColor;
   bg.fillRect(0,0,main_x,main_y);
-  if (w > h) scale = 1200 / w; else scale = 600 / h;
-  updateZoom(scale);
-  canvX = 0; canvY = 0;
-  cl("in")[0].style.top = canvY + 'px';
-  cl("in")[0].style.left = canvX + 'px';
   id("infoWidth").innerText = "Ширина: " + main_x;
   id("infoHeight").innerText = "Высота: " + main_y;
-  InImg.textSize = Math.round(main_x * main_y / 24000);
-  Selection.btns = false;
-  Array.prototype.forEach.call(cl("selButton"), (block) => {
-    block.classList.remove("visible");
-  });
-  ctx.imageSmoothingEnabled = false;
+  canvas.imageSmoothingEnabled = false;
 }
 
 function applyBlur(canvas, mode, weight) {
@@ -1135,7 +1131,7 @@ id("pagemax").addEventListener('drop', function(e){
   }
 });
 
-function flip(horizontal = false, vertical = false) {
+function flipCanvas(horizontal = false, vertical = false) {
   var canv = document.createElement('canvas');
   var canvx = canv.getContext('2d');
   var top = 0, left = 0;
@@ -1153,10 +1149,24 @@ function flip(horizontal = false, vertical = false) {
     (vertical ? canv.height : 0)
   );
   canvx.drawImage(canvas, -left, -top);
-  ctx.clearRect(top,left,canv.width,canv.height);
+  ctx.clearRect(left,top,canv.width,canv.height);
   ctx.drawImage(canv,left,top);
   ActionBuffer.addAction(false);
   return;
+}
+
+function rotateCanvas(clockwise = true) {
+  var data = canvas.toDataURL();
+  var img = new Image();
+  img.onload = function() {
+    updateCanvas(main_y,main_x);
+    ctx.setTransform(1,0,0,1,main_x/2,main_y/2);
+    clockwise ? ctx.rotate(Math.PI/2) : ctx.rotate(-Math.PI/2);
+    ctx.drawImage(img,-main_y/2,-main_x/2,main_y,main_x);
+    ctx.setTransform(1,0,0,1,0,0);
+    ActionBuffer.addAction(false);
+  }
+  img.src = data;
 }
 
 function generateHistogram() {
@@ -1337,7 +1347,7 @@ function createSelection() {
 }
 
 function setSelection(c) {
-  var arr = Selection.points; console.log(arr);
+  var arr = Selection.points;
   c.restore();
   if (arr != false) {
     c.save();
@@ -1650,7 +1660,7 @@ Array.prototype.forEach.call([id('copySel'), id('cutSel')], function(el, mode){
         else penBrush(id("penType").selectedIndex);
       }
       undo.clearRect(0,0,main_x,main_y);
-      ActionBuffer.addAction();
+      if (instrument != 7) ActionBuffer.addAction();
     }
     if (Selection.creating) {
       Selection.creating = 0;
@@ -1792,7 +1802,7 @@ $('#zoom-info').click(function(){
   canvX = 0; canvY = 0;
   cl("in")[0].style.top = (canvY) + 'px';
   cl("in")[0].style.left = (canvX) + 'px';
-  if (main_x > main_y) scale = 1200 / main_x; else scale = 600 / main_y;
+  if (main_x > main_y) scale = 1200 / main_x - 0.05; else scale = 600 / main_y - 0.05;
   updateZoom(scale);
   if (ctrl && shift) {
     id("TEST").style.display = "flex";
@@ -1996,8 +2006,8 @@ $(document).on('click', ".imgApply", function(){
     id("text_border").style.display = "none";
     ctx.closePath();
   } else if (adding == 3) {
-    var D = ctx.getImageData(InImg.left, InImg.top, Math.abs(InImg.left)+InImg.width-2, Math.abs(InImg.top)+InImg.height-2);
-    updateCanvas(InImg.width, InImg.height);
+    var D = ctx.getImageData(InImg.left, InImg.top, Math.abs(InImg.left)+InImg.width, Math.abs(InImg.top)+InImg.height);
+    updateCanvas(InImg.width, InImg.height, true);
     ctx.putImageData(D,0,0);
     id("imageBorder").style.display = "none";
     canvas.style.filter = ""; id('bg_canvas').style.filter = "";
@@ -2005,17 +2015,15 @@ $(document).on('click', ".imgApply", function(){
     block.classList.remove("visible");
     var checker = id("pasteImg").getElementsByTagName("input")[0];
     checker.checked = false;
-    return;
   }
   instBlock.innerHTML = "";
   if (!correctingBool) {var blocks = cl("button");
                         for (var i=0; i<blocks.length; i++) blocks[i].style.color = "";}
   adding = 0;
   ctx.imageSmoothingEnabled = false;
-  if (!Selection.cut) {
-    ActionBuffer.addAction(false);
-  }
+  ActionBuffer.addAction(false);
   Selection.cut = false;
+  return;
 });
 
 $("#textButton").click(function(){
@@ -2122,10 +2130,20 @@ $('#canvasWidth, #canvasHeight').on('change', function(){
 id("updateCanvas").addEventListener("click", function(){
   var w = parseInt(id("canvasWidth").value), h = parseInt(id("canvasHeight").value);
   updateCanvas(w, h);
-  var checker = id("pasteImg").getElementsByTagName("input")[0];
-  if (checker.checked) {
+  if (w > h) scale = 1200 / w - 0.05; else scale = 600 / h - 0.05;
+  updateZoom(scale);
+  canvX = 0; canvY = 0;
+  cl("in")[0].style.top = canvY + 'px';
+  cl("in")[0].style.left = canvX + 'px';
+  InImg.textSize = Math.round(main_x * main_y / 24000);
+  Selection.btns = false;
+  Array.prototype.forEach.call(cl("selButton"), (block) => {
+    block.classList.remove("visible");
+  });
+  if (id("pasteImg").getElementsByTagName("input")[0].checked) {
     ctx.drawImage(bgImg,0,0);
   }
+  ActionBuffer.reset();
   toggleVisible(id("overlay_container"));
 });
 
@@ -2209,8 +2227,10 @@ id("cropButton").addEventListener("click", function(){
   }
 });
 
-id("flipV").addEventListener('click',function(){flip(false, true);});
-id("flipH").addEventListener('click',function(){flip(true, false);});
+id("flipV").addEventListener('click',function(){flipCanvas(false, true);});
+id("flipH").addEventListener('click',function(){flipCanvas(true, false);});
+id("rotateC").addEventListener('click',function(){rotateCanvas();});
+id("rotateAC").addEventListener('click',function(){rotateCanvas(false);});
 
 id("blurPower").addEventListener('change',function(){
   var canv = id("blurPreview");
