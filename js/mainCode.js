@@ -170,6 +170,7 @@ function changeInst(block) {
 }
 
 function changeBrushSize(s) {
+  if (s < 1) s = 1; else if (s > 200) s = 200;
   id("size_slider").getElementsByClassName("slider_button")[0].style.left = s + 'px';
   size = Math.round(s);
   id("brushSize").children[0].innerText = size + "px";
@@ -1507,6 +1508,7 @@ function copyCut(mode) {
     ctx.clearRect(Selection.left, Selection.top, Selection.width, Selection.height);
     Selection.cut = true;
   }
+  addImage(canv.toDataURL());
   toClipboard(canv);
 }
 
@@ -1901,8 +1903,9 @@ $("#addImage").click(function(){
     } else {
       addImg.src = url;
       addImg.onerror = function() {
-        if (!tried) {addImg.src = "https://cors-anywhere.herokuapp.com/"+url; tried = true; return;}
-        else msg.innerText = "Невозможно загрузить изображение"; return;
+        if (!tried) {addImg.src = "https://cors-anywhere.herokuapp.com/"+url; tried = true;}
+        else msg.innerText = "Невозможно загрузить изображение";
+        return;
       }
       addImg.onload = function (e) {
         msg.innerText = '';
@@ -2403,6 +2406,23 @@ id("copyBtn").addEventListener("click", function(){
 id("TEST").addEventListener("click", function(){
   toClipboard();
 });
+
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get("imagesrc")) {
+  var tried = false;
+  var urlImg = new Image();
+  urlImg.setAttribute("crossorigin", "anonymous");
+  urlImg.onload = function() {
+    updateCanvas(urlImg.width, urlImg.height);
+    ctx.drawImage(urlImg, 0, 0);
+    return;
+  }
+  urlImg.onerror = function() {
+    if (!tried) {urlImg.src = "https://cors-anywhere.herokuapp.com/"+urlImg.src; tried = true; return;}
+    else toastMsg("Невозможно загрузить изображение"); return;
+  }
+  urlImg.src = urlParams.get("imagesrc");
+}
 
 resetInstrument();
 updateZoom(0.9);
