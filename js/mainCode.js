@@ -16,10 +16,10 @@ function cl(node) {
 var InImg = {
   top: 0, left: 0, width: 0, height: 0, angle: 0, prop: 1,
   textSize: 30, textFont: 0, textStroke: false, textBold: false, textItalic: false,
-}
+};
 var Selection = {
   top: 0, left: 0, width: 0, height: 0, points: [], creating: 0, creatingType: 0, btns: false, cut: false,
-}
+};
 var select, sel;
 
 var canvas = id('main_canvas');
@@ -27,10 +27,9 @@ var instBlock = id("inst_settings");
 var ctx = canvas.getContext('2d');
 var bg = id('bg_canvas').getContext('2d');
 var dl = id('dl_canvas').getContext('2d');
-var un2 = id('undo_canvas2');
 var un1 = id('undo_canvas1');
 var undo = un1.getContext('2d');
-var lastAct = false, adding = 0, correctingBool = false;
+var adding = 0, correctingBool = false;
 var isMoving = 0, isDrawing = 0, isSliding = 0;
 var instrument = 0;
 var x1, x2, y1, y2, canvX=0, canvY=0;
@@ -54,6 +53,64 @@ $('#l1').css('background','#348bee');
 bg.fillStyle = bgColor; bg.fillRect(0,0,main_x,main_y);
 ctx.imageSmoothingEnabled = false;
 bg.imageSmoothingEnabled = true;
+
+var ActionBuffer = {
+  actions: [],
+  max: 10,
+  count: 0,
+  position: 0,
+  adding: true,
+  addAction: function(needToCheckAdding = true) {
+    if (this.adding || !needToCheckAdding) {
+      this.count = this.position;
+      this.actions.splice(this.count, this.actions.length);
+      var action = {
+        width: canvas.width,
+        height: canvas.height,
+        base64: canvas.toDataURL()
+      };
+      this.actions.push(action);
+      this.count++;
+      if (this.count > this.max+1) {this.actions.splice(0,1); this.count--;}
+      this.position = this.count;
+      this.adding = false;
+      console.log("added action. Count = " + this.count, this);
+    }
+  },
+  updateCanvas: function(){
+    var act = this;
+    var img = new Image();
+    var w = act.actions[act.position-1].width, h = act.actions[act.position-1].height;
+    img.onload = function() {
+      updateCanvas(w, h);
+      ctx.drawImage(img, 0, 0);
+    };
+    img.src = act.actions[act.position-1].base64;
+  },
+  undo: function() {
+    if (this.position > 1) {
+      this.position--;
+      this.updateCanvas();
+      console.log("undoed action. Position = " + this.position, this);
+    }
+  },
+  redo: function() {
+    if (this.position < this.count) {
+      this.position++;
+      this.updateCanvas();
+      console.log("redoed action. Position = " + this.position, this);
+    }
+  },
+  reset: function() {
+    this.count = 1; this.position = 1;
+    this.actions = [];
+    this.actions.push({
+      width: canvas.width,
+      height: canvas.height,
+      base64: canvas.toDataURL()
+    });
+  },
+};
 
 function toastMsg(str) {
   var msg = document.createElement('div');
@@ -113,6 +170,7 @@ function changeInst(block) {
 }
 
 function changeBrushSize(s) {
+  if (s < 1) s = 1; else if (s > 200) s = 200;
   id("size_slider").getElementsByClassName("slider_button")[0].style.left = s + 'px';
   size = Math.round(s);
   id("brushSize").children[0].innerText = size + "px";
@@ -134,7 +192,7 @@ function drawing(context, event, x, y) {
   var Size = size;
   if (Size < 5) Size -= Math.trunc(Size/2);
   context.save();
-  if (instrument == 2) context.globalCompositeOperation = 'destination-out';
+  if (instrument == 2) {context.globalCompositeOperation = 'destination-out'; context.globalAlpha = 1;}
   else if (id("penType").selectedIndex) {brushCoords[0].push(x1/scale); brushCoords[1].push(y1/scale);}
   context.beginPath();
   context.lineWidth = 0;
@@ -196,7 +254,8 @@ function drawLine(context) {
     context.lineCap = "round";
     context.save();
     context.translate(x2,y2);
-    context.rotate(angle);
+    if (shift) context.rotate(getAngle(x1,y1,x2,y2));
+    else context.rotate(angle);
     context.beginPath();
     context.moveTo(size,0);
     context.lineTo(-size*2,-size);
@@ -220,7 +279,7 @@ function drawLine(context) {
 function drawRect(context) {
   x2 = (event.pageX - $('#main_canvas').offset().left)/scale;
   y2 = (event.pageY - $('#main_canvas').offset().top)/scale;
-  var xt = x1, yt = y1, s;
+  var s;
   context.clearRect(0,0,main_x,main_y);
   context.beginPath();
   if (id("fillShape").checked) context.fillStyle = 'rgb('+red1+','+green1+','+blue1+','+tr1+')';
@@ -228,10 +287,15 @@ function drawRect(context) {
   context.strokeStyle = 'rgb('+red2+','+green2+','+blue2+','+tr11+')';
   if (id("strokeShape").checked) {s = size;} else {s=0;}
   context.lineWidth = s;
-  var Y = (y2-yt);
-  if (shift) {Y = (x2-xt); if (x2 < x1) {xt = x2; x2 = x1; Y = (xt-x2);}}
-  context.fillRect(xt, yt, (x2-xt), Y);
-  if (id("strokeShape").checked) {context.strokeRect(xt ,yt, (x2-xt), Y);}
+  var Y = (y2-y1), X = (x2-x1);
+  if (shift) {
+    X = Math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1))/Math.sqrt(2);
+    Y = X;
+    if (x2 < x1) X = -X;
+    if (y2 < y1) Y = -Y;
+  }
+  context.fillRect(x1, y1, X, Y);
+  if (id("strokeShape").checked) {context.strokeRect(x1 ,y1, X, Y);}
   context.closePath();
 }
 
@@ -305,7 +369,7 @@ function imgResize(event, wR, hR) {
   id("addedImage").style.width = (W+1) + "px";
   id("addedImage").style.height = (H+1) + "px";
   if (adding == 3) {
-    id("newRes").innerText = (id("imageBorder").offsetWidth-2) + 'x' + (id("imageBorder").offsetHeight-2);
+    id("newRes").innerText = (id("imageBorder").offsetWidth) + 'x' + (id("imageBorder").offsetHeight);
   }
 }
 
@@ -473,6 +537,7 @@ function fill() {
     c.getContext('2d').putImageData(data,0,0);
     ctx.drawImage(c, Selection.left, Selection.top);
   }
+  ActionBuffer.addAction(false);
 }
 
 function addImage(url) {
@@ -585,7 +650,7 @@ function penBrush(mode) {
       spx.push(Math.abs(brushCoords[0][i] - brushCoords[0][i-1]));
       spy.push(Math.abs(brushCoords[1][i] - brushCoords[1][i-1]));
     }
-    var speed = (median(spx) + median(spy)) / 3;
+    var speed = (median(spx) + median(spy)) / 2.25;
     if (speed > 8) speed = 8;
     speed = Math.round(9-speed);
     for (var i=0; i<brushCoords[0].length; i+=speed) {
@@ -604,7 +669,7 @@ function penBrush(mode) {
       newArr.push(arr[arr.length-1]);
       return newArr;
     }
-    for (var i=0; i<5; i++) {
+    for (var i=0; i<6; i++) {
       nbx = smooth(nbx); nby = smooth(nby);
     }
     for (var i = 0; i < nbx.length; i++) {
@@ -662,7 +727,6 @@ function colorCorrection(mode) {
 }
 
 function applyColorCorrection() {
-  ctx.globalAlpha = tr1; un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
   var data = ctx.getImageData(0,0,main_x,main_y);
   var d = data.data;
   //КОНТРАСТ, ЯРКОСТЬ И ТЕМПЕРАТУРА//
@@ -717,14 +781,13 @@ function applyColorCorrection() {
   ctx.clearRect(0,0,main_x,main_y);
   ctx.putImageData(data,0,0);
   canvas.style.filter = "";
+  ActionBuffer.addAction(false);
 }
 
 function applyFilter(context, mode) {
   var power =  id("filterPower").value / 100;
   var c = context.getContext('2d');
-  if (context == canvas) {
-    ctx.globalAlpha = tr1; un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
-  } else if (context == id("filterPreview")) c.putImageData(tempData,0,0);
+  if (context == id("filterPreview")) c.putImageData(tempData,0,0);
   var data = c.getImageData(0,0,context.width,context.height);
   var d = data.data;
   var dOriginal = d.slice();
@@ -906,14 +969,15 @@ function applyFilter(context, mode) {
   }
   c.clearRect(0,0,context.width,context.height);
   c.putImageData(data,0,0);
+  if (context == canvas) {
+    ActionBuffer.addAction(false);
+  }
   return;
 }
 
 function applySharpness(context, mode, power, radius) {
   var c = context.getContext('2d');
-  if (context == canvas) {
-    ctx.globalAlpha = tr1; un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
-  } else if (context == id("filterPreview")) c.putImageData(tempData,0,0);
+  if (context == id("filterPreview")) c.putImageData(tempData,0,0);
   var data = c.getImageData(0,0,context.width,context.height);
   var d = data.data;
   var med;
@@ -942,6 +1006,10 @@ function applySharpness(context, mode, power, radius) {
   }
   c.clearRect(0,0,context.width,context.height);
   c.putImageData(data,0,0);
+  if (context == canvas) {
+    ActionBuffer.addAction(false);
+  }
+  return;
 }
 
 
@@ -961,26 +1029,19 @@ function updateCanvasPreview() {
 function updateCanvas(w, h) {
   var blocks = cl("canvases")[0].getElementsByTagName("canvas");
   for (var i=0; i<blocks.length; i++) {
-    blocks[i].width = w; blocks[i].height = h;
+    blocks[i].width = w;
+    blocks[i].height = h;
   }
-  main_x = canvas.width; main_y = canvas.height;
+  main_x = w; main_y = h;
   var bb = cl("canvases")[0];
-  bb.style.width = w+'px'; bb.style.height = h+'px'; bb.style.minWidth = w+'px';
+  bb.style.width = w+'px';
+  bb.style.height = h+'px';
+  bb.style.minWidth = w+'px';
   bg.fillStyle = bgColor;
   bg.fillRect(0,0,main_x,main_y);
-  if (w > h) scale = 1200 / w; else scale = 600 / h;
-  updateZoom(scale);
-  canvX = 0; canvY = 0;
-  cl("in")[0].style.top = canvY + 'px';
-  cl("in")[0].style.left = canvX + 'px';
   id("infoWidth").innerText = "Ширина: " + main_x;
   id("infoHeight").innerText = "Высота: " + main_y;
-  InImg.textSize = Math.round(main_x * main_y / 24000);
-  Selection.btns = false;
-  Array.prototype.forEach.call(cl("selButton"), (block) => {
-    block.classList.remove("visible");
-  });
-  ctx.imageSmoothingEnabled = false;
+  canvas.imageSmoothingEnabled = false;
 }
 
 function applyBlur(canvas, mode, weight) {
@@ -1071,22 +1132,42 @@ id("pagemax").addEventListener('drop', function(e){
   }
 });
 
-function flip(horizontal = false, vertical = false) {
-  ctx.globalAlpha = 1; un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
+function flipCanvas(horizontal = false, vertical = false) {
+  var canv = document.createElement('canvas');
+  var canvx = canv.getContext('2d');
+  var top = 0, left = 0;
+  if (Selection.points == false) {
+    canv.width = main_x; canv.height = main_y;
+  } else {
+    canv.width = Selection.width+2; canv.height = Selection.height+2;
+    top = Selection.top-1; left = Selection.left-1;
+  }
+  canvx.imageSmoothingEnabled = false;
+  canvx.setTransform(
+    horizontal ? -1 : 1, 0,
+    0, vertical ? -1 : 1,
+    (horizontal ? canv.width : 0),
+    (vertical ? canv.height : 0)
+  );
+  canvx.drawImage(canvas, -left, -top);
+  ctx.clearRect(left,top,canv.width,canv.height);
+  ctx.drawImage(canv,left,top);
+  ActionBuffer.addAction(false);
+  return;
+}
+
+function rotateCanvas(clockwise = true) {
+  var data = canvas.toDataURL();
   var img = new Image();
   img.onload = function() {
-    ctx.save();
-    ctx.setTransform(
-      horizontal ? -1 : 1, 0,
-      0, vertical ? -1 : 1,
-      (horizontal ? main_x : 0),
-      (vertical ? main_y : 0)
-    );
-    ctx.clearRect(0,0,main_x,main_y);
-    ctx.drawImage(img,0,0);
-    ctx.restore();
+    updateCanvas(main_y,main_x);
+    ctx.setTransform(1,0,0,1,main_x/2,main_y/2);
+    clockwise ? ctx.rotate(Math.PI/2) : ctx.rotate(-Math.PI/2);
+    ctx.drawImage(img,-main_y/2,-main_x/2,main_y,main_x);
+    ctx.setTransform(1,0,0,1,0,0);
+    ActionBuffer.addAction(false);
   }
-  img.src = canvas.toDataURL();
+  img.src = data;
 }
 
 function generateHistogram() {
@@ -1268,8 +1349,8 @@ function createSelection() {
 
 function setSelection(c) {
   var arr = Selection.points;
-  if (arr == false) {c.restore();}
-  else {
+  c.restore();
+  if (arr != false) {
     c.save();
     c.beginPath();
     var mode = Selection.creatingType;
@@ -1427,6 +1508,7 @@ function copyCut(mode) {
     ctx.clearRect(Selection.left, Selection.top, Selection.width, Selection.height);
     Selection.cut = true;
   }
+  addImage(canv.toDataURL());
   toClipboard(canv);
 }
 
@@ -1455,7 +1537,10 @@ document.addEventListener('keydown', function(event) {
   if (event.code == 'BracketLeft') {changeBrushSize(size-10);}
   if (event.code == 'BracketRight') {changeBrushSize(size+10);}
   if (event.code == 'KeyZ' && ctrl) {
-    event.preventDefault(); id("undoButton").click();
+    event.preventDefault(); ActionBuffer.undo();
+  }
+  if (event.code == 'KeyY' && ctrl) {
+    event.preventDefault(); ActionBuffer.redo();
   }
   if (event.code == 'KeyC' && ctrl && Selection.points != false) {copyCut(0);}
   if (event.code == 'KeyX' && ctrl && Selection.points != false) {copyCut(1);}
@@ -1499,15 +1584,12 @@ Array.prototype.forEach.call([id('copySel'), id('cutSel')], function(el, mode){
 
   un1.addEventListener("mousedown", function() {
     if (instrument != 6 && !ctrl && !correctingBool && !adding) {
-      un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
+      ActionBuffer.adding = true;
       if (!(instrument>2 && instrument < 6)) {ctx.globalAlpha = tr1; un1.style.opacity = tr1;}
       else {
         ctx.globalAlpha = 1; un1.style.opacity = 1;
       }
       isDrawing = 1;
-      if (instrument) {
-        ctx.drawImage(un1,0,0);
-      }
     }
     if (Selection.creatingType && !ctrl) {
       if (id('selectionCanvas')) id('selectionCanvas').remove();
@@ -1573,9 +1655,6 @@ Array.prototype.forEach.call([id('copySel'), id('cutSel')], function(el, mode){
 
   $(document).on("mouseup", function() {
     isDrawing = 0; isSliding = 0; isMoving = 0;
-    if (lastAct) {
-      un1.style.opacity = 1;
-    }
     if (instrument != 6) {
       if (!(instrument>2 && instrument<6))ctx.globalAlpha = tr1;
       if (instrument != 1) ctx.drawImage(un1,0,0); else {
@@ -1583,6 +1662,7 @@ Array.prototype.forEach.call([id('copySel'), id('cutSel')], function(el, mode){
         else penBrush(id("penType").selectedIndex);
       }
       undo.clearRect(0,0,main_x,main_y);
+      if (instrument != 7) ActionBuffer.addAction();
     }
     if (Selection.creating) {
       Selection.creating = 0;
@@ -1596,11 +1676,11 @@ Array.prototype.forEach.call([id('copySel'), id('cutSel')], function(el, mode){
   });
 
   $(document).on("mousemove", function(event) {
-    if (isDrawing == 1) {if (instrument==3) {drawLine(undo); lastAct = false;}
-                         if (instrument==4) {drawRect(undo); lastAct = false;}
-                         if (instrument==5) {drawArc(undo); lastAct = false;}
-                         if (instrument==1) {lastAct = false; drawing(undo, event, ctxX, ctxY);}
-                         if (instrument==2) {lastAct = false; drawing(ctx, event, ctxX, ctxY);}
+    if (isDrawing == 1) {if (instrument==3) {drawLine(undo);}
+                         if (instrument==4) {drawRect(undo);}
+                         if (instrument==5) {drawArc(undo);}
+                         if (instrument==1) {drawing(undo, event, ctxX, ctxY);}
+                         if (instrument==2) {drawing(ctx, event, ctxX, ctxY);}
                         }
     if (isSliding) {
       if (isSliding == 1) {sliding();}
@@ -1629,9 +1709,8 @@ Array.prototype.forEach.call([id('copySel'), id('cutSel')], function(el, mode){
 
 $('#clearButton').click(function(){
   if (!adding) {
-    ctx.drawImage(un1, 0, 0); un2.getContext('2d').clearRect(0, 0, main_x, main_y);
-    un2.getContext('2d').drawImage(canvas, 0, 0);
-    ctx.clearRect(0, 0, main_x, main_y);   undo.clearRect(0, 0, main_x, main_y);
+    ctx.clearRect(0, 0, main_x, main_y); undo.clearRect(0, 0, main_x, main_y);
+    ActionBuffer.addAction(false);
   }
 });
 
@@ -1697,7 +1776,7 @@ $('#arcButton').click(function(){
   }
 });
 
-$('#pipetteButton').click(function(){
+id("pipetteButton").addEventListener("click", function(){
   if (instrument == 6) {resetInstrument(); return;}
   if (!adding && !correctingBool) {
     changeInst(this); instrument = 6;
@@ -1705,18 +1784,17 @@ $('#pipetteButton').click(function(){
   }
 });
 
-$('#colorButton').click(function(){
+id("colorButton").addEventListener("click", function(){
   var block = cl("color_square_container")[0];
   toggleVisible(block);
 });
 
-$('#undoButton').click(function(){
-  if (!lastAct) {
-    var temp1 = ctx.getImageData(0,0,main_x,main_y);
-    var temp2 = un2.getContext('2d').getImageData(0,0,main_x,main_y);
-    ctx.clearRect(0,0,main_x,main_y); ctx.putImageData(temp2,0,0);
-    un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').putImageData(temp1,0,0);
-  }
+id("undoButton").addEventListener("click", function(){
+  ActionBuffer.undo();
+});
+
+id("redoButton").addEventListener("click", function(){
+  ActionBuffer.redo();
 });
 
 $('#zoominButton').click(function(){scale += 0.2; if (scale>4) scale=4; updateZoom(scale);});
@@ -1726,7 +1804,7 @@ $('#zoom-info').click(function(){
   canvX = 0; canvY = 0;
   cl("in")[0].style.top = (canvY) + 'px';
   cl("in")[0].style.left = (canvX) + 'px';
-  if (main_x > main_y) scale = 1200 / main_x; else scale = 600 / main_y;
+  if (main_x > main_y) scale = 1200 / main_x - 0.05; else scale = 600 / main_y - 0.05;
   updateZoom(scale);
   if (ctrl && shift) {
     id("TEST").style.display = "flex";
@@ -1825,8 +1903,9 @@ $("#addImage").click(function(){
     } else {
       addImg.src = url;
       addImg.onerror = function() {
-        if (!tried) {addImg.src = "https://cors-anywhere.herokuapp.com/"+url; tried = true; return;}
-        else msg.innerText = "Невозможно загрузить изображение"; return;
+        if (!tried) {addImg.src = "https://cors-anywhere.herokuapp.com/"+url; tried = true;}
+        else msg.innerText = "Невозможно загрузить изображение";
+        return;
       }
       addImg.onload = function (e) {
         msg.innerText = '';
@@ -1873,10 +1952,6 @@ $(document).on('click', ".imgCancel", function(){
 });
 
 $(document).on('click', ".imgApply", function(){
-  if (!Selection.cut) {
-    un2.getContext('2d').clearRect(0,0,main_x,main_y);
-    un2.getContext('2d').drawImage(canvas,0,0);
-  }
   ctx.globalAlpha = 1;
   ctx.imageSmoothingEnabled = true;
   if (adding == 1) {
@@ -1934,8 +2009,8 @@ $(document).on('click', ".imgApply", function(){
     id("text_border").style.display = "none";
     ctx.closePath();
   } else if (adding == 3) {
-    var D = ctx.getImageData(InImg.left, InImg.top, Math.abs(InImg.left)+InImg.width-2, Math.abs(InImg.top)+InImg.height-2);
-    updateCanvas(InImg.width, InImg.height);
+    var D = ctx.getImageData(InImg.left, InImg.top, Math.abs(InImg.left)+InImg.width, Math.abs(InImg.top)+InImg.height);
+    updateCanvas(InImg.width, InImg.height, true);
     ctx.putImageData(D,0,0);
     id("imageBorder").style.display = "none";
     canvas.style.filter = ""; id('bg_canvas').style.filter = "";
@@ -1944,13 +2019,14 @@ $(document).on('click', ".imgApply", function(){
     var checker = id("pasteImg").getElementsByTagName("input")[0];
     checker.checked = false;
   }
-
   instBlock.innerHTML = "";
   if (!correctingBool) {var blocks = cl("button");
                         for (var i=0; i<blocks.length; i++) blocks[i].style.color = "";}
   adding = 0;
   ctx.imageSmoothingEnabled = false;
+  ActionBuffer.addAction(false);
   Selection.cut = false;
+  return;
 });
 
 $("#textButton").click(function(){
@@ -2057,10 +2133,20 @@ $('#canvasWidth, #canvasHeight').on('change', function(){
 id("updateCanvas").addEventListener("click", function(){
   var w = parseInt(id("canvasWidth").value), h = parseInt(id("canvasHeight").value);
   updateCanvas(w, h);
-  var checker = id("pasteImg").getElementsByTagName("input")[0];
-  if (checker.checked) {
+  if (w > h) scale = 1200 / w - 0.05; else scale = 600 / h - 0.05;
+  updateZoom(scale);
+  canvX = 0; canvY = 0;
+  cl("in")[0].style.top = canvY + 'px';
+  cl("in")[0].style.left = canvX + 'px';
+  InImg.textSize = Math.round(main_x * main_y / 24000);
+  Selection.btns = false;
+  Array.prototype.forEach.call(cl("selButton"), (block) => {
+    block.classList.remove("visible");
+  });
+  if (id("pasteImg").getElementsByTagName("input")[0].checked) {
     ctx.drawImage(bgImg,0,0);
   }
+  ActionBuffer.reset();
   toggleVisible(id("overlay_container"));
 });
 
@@ -2144,8 +2230,10 @@ id("cropButton").addEventListener("click", function(){
   }
 });
 
-id("flipV").addEventListener('click',function(){flip(false, true);});
-id("flipH").addEventListener('click',function(){flip(true, false);});
+id("flipV").addEventListener('click',function(){flipCanvas(false, true);});
+id("flipH").addEventListener('click',function(){flipCanvas(true, false);});
+id("rotateC").addEventListener('click',function(){rotateCanvas();});
+id("rotateAC").addEventListener('click',function(){rotateCanvas(false);});
 
 id("blurPower").addEventListener('change',function(){
   var canv = id("blurPreview");
@@ -2181,7 +2269,6 @@ id("openBlurButton").addEventListener('click',function(){
 });
 
 id("applyBlurBtn").addEventListener('click',function(){
-  ctx.globalAlpha = tr1; un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
   var weight = id("blurPower").value;
   toggleVisible(id("overlay_container"));
   var mode = 0;
@@ -2189,6 +2276,7 @@ id("applyBlurBtn").addEventListener('click',function(){
     if (el.checked) mode = ind;
   });
   applyBlur(canvas, mode, weight);
+  ActionBuffer.addAction(false);
 });
 
 id("openHistogramButton").addEventListener('click',function() {
@@ -2256,7 +2344,6 @@ $(".curve_channels").click(function(){
 });
 
 id("applyCurvesBtn").addEventListener('click',function() {
-  ctx.globalAlpha = tr1; un2.getContext('2d').clearRect(0,0,main_x,main_y); un2.getContext('2d').drawImage(canvas,0,0);
   toggleVisible(id("overlay_container"));
   var vals = [];
   for (var i=0; i < 256; i++) {vals[i] = CSPL.evalSpline(i, cx, cy, ck);}
@@ -2268,6 +2355,7 @@ id("applyCurvesBtn").addEventListener('click',function() {
     d[i+2] = (512 - valsCW[d[i+2]] - valsCB[d[i+2]])/2;
   }
   ctx.putImageData(data,0,0);
+  ActionBuffer.addAction(false);
 });
 
 id("openCurvesButton").addEventListener('click',function() {
@@ -2319,7 +2407,25 @@ id("TEST").addEventListener("click", function(){
   toClipboard();
 });
 
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get("imagesrc")) {
+  var tried = false;
+  var urlImg = new Image();
+  urlImg.setAttribute("crossorigin", "anonymous");
+  urlImg.onload = function() {
+    updateCanvas(urlImg.width, urlImg.height);
+    ctx.drawImage(urlImg, 0, 0);
+    return;
+  }
+  urlImg.onerror = function() {
+    if (!tried) {urlImg.src = "https://cors-anywhere.herokuapp.com/"+urlImg.src; tried = true; return;}
+    else toastMsg("Невозможно загрузить изображение"); return;
+  }
+  urlImg.src = urlParams.get("imagesrc");
+}
+
 resetInstrument();
 updateZoom(0.9);
+ActionBuffer.addAction();
 
  });

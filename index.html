@@ -176,6 +176,379 @@
         <span id="infoHeight">Высота: 600</span>
       </div>
       <div class="info">
+        <span id="infoX">X: </span>
+        <span id="infoY">Y: </span>
+      </div>
+      <div class="zoom_container flexed">
+        <div class="flexed button" id="zoomoutButton" title="Отдалить [Ctrl + Колесо мыши вниз]"><img src="icons/search-minus-solid.svg"></div>
+        <span id="zoom-info" title="Нажмите, чтобы сбросить масштаб и позицию холста">100%</span>
+        <div class="flexed button" id="zoominButton" title="Приблизить [Ctrl + Колесо мыши вверх]"><img src="icons/search-plus-solid.svg"></div>
+      </div>
+      <div class="btn flexed" id="openHistogramButton">
+        <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" style="width: 1em; margin-right: 4px;"><path fill="currentColor" d="M500 384c6.6 0 12 5.4 12 12v40c0 6.6-5.4 12-12 12H12c-6.6 0-12-5.4-12-12V76c0-6.6 5.4-12 12-12h40c6.6 0 12 5.4 12 12v308h436zM372.7 159.5L288 216l-85.3-113.7c-5.1-6.8-15.5-6.3-19.9 1L96 248v104h384l-89.9-187.8c-3.2-6.5-11.4-8.7-17.4-4.7z"></path></svg>
+        Гистограмма
+      </div>
+    </div>
+    <div class="paint_info flexed">
+      <div class="btn flexed" id="openHotkeysButton">Горячие клавиши</div>
+    </div>
+  </div>
+
+    <div id="overlay_container" class="flexed">
+      <div class="overlay_dark"></div>
+      <div class="overlay">
+        <div id="addImg_container" class="flexed overflow_box">
+          <h3>Добавить изображение</h3>
+          <div class="flexed" style="width: 100%;"><input name="file" type="radio" value="file" /><input id="imageFile" style="color: white;" type="file" /></div>
+          <div class="flexed" style="margin: 6px 0px; width: 100%;"><input checked="" name="file" type="radio" value="url" /><input id="imageLink" placeholder="Вставьте ссылку на изображение" type="text" /></div>
+          <div class="flexed" style="width: 100%;"><span>Вы также можете вставить изображение из буфера обмена: Ctrl + V<br />Или перетащив файл изображения на холст</span></div>
+          <div class="btn" id="addImage">Добавить</div>
+          <span class="errorText"></span>
+          <div class="image_history_container">
+            <span id="imageHistoryTitle" class="title">Последние использованные изображения</span>
+            <div id="imageHistory" class="flexed"></div>
+          </div>
+        </div>
+        <div id="editCanvas_container" class="flexed overflow_box">
+          <h3>Параметры нового холста</h3>
+          <div class="dim_presets" style="display: inherit;">
+            <div class="btn dim_preset">1920x1080 [FHD]</div>
+            <div class="btn dim_preset">1280x720 [HD]</div>
+            <div class="btn dim_preset">1600x1600</div>
+            <div class="btn" title="Выберите файл, чтобы присвоить холсту его размеры и сразу вставить изображение на холст">
+              <input id="dim_presetFile" name="file" type="file" />
+              <label for="dim_presetFile">Выберите файл</label>
+            </div>
+          </div>
+            <div class="flexed" style="width: 100%;">
+              <div class="link_container">
+                <label class="link"><input type="checkbox" id="link"/><div class="flexed" title="Сохранить пропорции"><img src="icons/link.svg"/></div></label>
+              </div>
+              <div class="flexed inputs">
+                <div class="flexed"><span>Ширина:</span><input id="canvasWidth" placeholder="пикс." type="number" value="1200" /></div>
+                  <div class="flexed"><span>Высота:</span><input id="canvasHeight" placeholder="пикс." type="number" value="600" /></div>
+              </div>
+              <div class="canvasPreview flexed"><div id="canvasPreview" style="height: 100px; width: 200px;"><div id="canvasAspectRatio">2:1</div></div></div>
+            </div>
+          <label class="input_cont flexed" id="pasteImg"><input type="checkbox" /><div class="input_style"></div><span>Вставить изображение на новый холст</span></label>
+          <div class="btn" id="updateCanvas">Создать холст</div>
+          <span class="errorText">Создание нового холста полностью очистит старый холст</span>
+        </div>
+        <div id="filters_container" class="flexed overflow_box">
+          <h3>Фильтры</h3>
+          <div class="filters_in flexed">
+            <div class="filters_table thin-scrollbar flexed">
+              <div class="filters_row flexed">
+                <div class="filter flexed" id="filter0"><div></div><span>Без фильтров</span></div>
+                <div class="filter flexed" id="filter1"><div></div><span>Янтарь</span></div>
+                <div class="filter flexed" id="filter2"><div></div><span>Мрак</span></div>
+              </div>
+              <div class="filters_row flexed">
+                <div class="filter flexed" id="filter3"><div></div><span>Ясность</span></div>
+                <div class="filter flexed" id="filter4"><div></div><span>Холод</span></div>
+                <div class="filter flexed" id="filter5"><div></div><span>Мечта</span></div>
+              </div>
+              <div class="filters_row flexed">
+                <div class="filter flexed" id="filter6"><div></div><span>Сахарная вата</span></div>
+                <div class="filter flexed" id="filter7"><div></div><span>Лоза</span></div>
+                <div class="filter flexed" id="filter8"><div></div><span>Ультрафиолет</span></div>
+              </div>
+              <div class="filters_row flexed">
+                <div class="filter flexed" id="filter9"><div></div><span>Только красный</span></div>
+                <div class="filter flexed" id="filter10"><div></div><span>Чернила</span></div>
+                <div class="filter flexed" id="filter11"><div></div><span>Негатив</span></div>
+              </div>
+            </div>
+            <div class="filters_preview flexed"><canvas id="filterPreview"></canvas></div>
+          </div>
+          <div class="flexed" style="width: 100%">
+            <input type="range" id="filterPower" min="0" max="100" value="100">
+            <div class="btn" id="applyFilter">Применить фильтр</div>
+          </div>
+        </div>
+        <div id="download_container" class="flexed overflow_box">
+          <h3>Скачать изображение</h3>
+          <label class="flexed downloadName">Название файла:
+            <input id="downloadName" type="text" placeholder="mordegaard-paint"/>
+            <span id="fileFormat">.png</span>
+          </label>
+          <div class="quality_slider flexed">
+            <span class="tips left">Худшее<br />качество</span>
+            <span class="tips center">Среднее<br />качество</span>
+            <span class="tips right">Лучшее<br />качество</span>
+            <input type="range" id="downloadQuality" min="0" max="10" disabled>
+          </div>
+          <div class="format flexed" style="margin: 4px 0px;">
+            <div><input type="radio" checked="" name="format" class="checker" value="png" id="png"/><label for="png" class="checker">png</label></div>
+            <div><input type="radio" name="format" class="checker" value="jpg" id="jpg"/><label for="jpg" class="checker">jpg</label></div>
+            <div><input type="radio" name="format" class="checker" value="webp" id="webp"/><label for="webp" class="checker">webp</label></div>
+          </div>
+          <div class="flexed">
+            <span id="fileSize"></span>
+            <div class="btn" id="downloadBtn" title="Скачать изображение">Скачать</div>
+            <div class="btn" id="copyBtn" title="Скопировать весь холст">Скопировать</div>
+          </div>
+        </div>
+        <div id="blur_container" class="flexed overflow_box">
+          <h3>Галерея размытий</h3>
+          <div class="flexed" style="width: 100%;">
+            <ul class="blur_list">
+              <li><input type="radio" checked name="blur" class="checker" id="gaussian"/><label for="gaussian" class="checker">По Гауссу</label></li>
+              <li><input type="radio" name="blur" class="checker" id="pixelated"/><label for="pixelated" class="checker">Пикселизация</label></li>
+            </ul>
+            <div class="preview flexed"><canvas id="blurPreview"></canvas></div>
+          </div>
+          <div class="flexed" style="width: 100%;">
+            <input type="range" id="blurPower" min="1" max="180" value="1">
+            <div class="btn" id="applyBlurBtn">Применить</div>
+          </div>
+        </div>
+        <div id="histogram_container" class="flexed overflow_box">
+          <h3>Гистограмма</h3>
+          <div style="position: relative; margin: 0px 60px; height: 512px;">
+            <canvas id="histogramPreview" width="512" height="512" style="background: rgba(0,0,0,0.2);"></canvas>
+            <span class="hist" id="hist1">-</span>
+            <span class="hist" id="hist2">-</span>
+            <span class="hist" id="hist3">-</span>
+          </div>
+        </div>
+        <div id="curves_container" class="flexed overflow_box">
+          <h3>Кривые</h3>
+          <span>Двойной ЛКМ - добавить/удалить точку</span>
+          <div class="flexed" style="margin: 10px 0px;">
+            <div class="flexed" style="flex-direction: column;">
+               <div><input type="radio" checked name="curve" value="1" id="curveWhite"/><label for="curveWhite" class="curve_channels" style="color: white;"></label></div>
+               <div><input type="radio" name="curve" value="2" id="curveRed"/><label for="curveRed" class="curve_channels" style="color: red;"></label></div>
+               <div><input type="radio" name="curve" value="3" id="curveGreen"/><label for="curveGreen" class="curve_channels" style="color: chartreuse;"></label></div>
+               <div><input type="radio" name="curve" value="4" id="curveBlue"/><label for="curveBlue" class="curve_channels" style="color: blue;"></label></div>
+            </div>
+            <div id="curvesContainer" style="position: relative; width: 256px; height: 256px;"><canvas id="curves" width="256" height="256" style="background: rgba(0,0,0,0.2);"></canvas></div>
+            <div class="flexed curvesPreview"><canvas id="curvesPreview" width="400" height="200" style="background: white;"></canvas></div>
+          </div>
+          <div class="btn" id="applyCurvesBtn">Применить</div>
+        </div>
+        <div id="hotkeys_container" class="flexed overflow_box">
+          <h3>Горячие клавиши</h3>
+          <div class="list thin-scrollbar">
+            <p>Редактор</p>
+            <ul>
+              <li><div class="hotkey">Ctrl</div> + <div class="hotkey">0</div> — Сбросить масштаб и позицию холста</li>
+              <li><div class="hotkey">Ctrl</div> + <div class="hotkey">Z</div> — Отменить действие</li>
+              <li><div class="hotkey">Ctrl</div> + <div class="hotkey">Y</div> — Вернуть отменённое действие</li>
+              <li><div class="hotkey">Ctrl</div> + <div class="hotkey">O</div> — Создать новый холст/Открыть изображение</li>
+              <li><div class="hotkey">Ctrl</div> + <div class="hotkey">S</div> — Скачать изображение</li>
+              <li><div class="hotkey">Space</div> — Палитра</li>
+              <li><div class="hotkey">Esc</div> — Закрыть окно</li>
+            </ul>
+            <p>Инструменты</p>
+            <ul>
+              <li><div class="hotkey">B</div> — Кисть</li>
+              <li><div class="hotkey">E</div> — Ластик</li>
+              <li><div class="hotkey">G</div> — Заливка</li>
+              <li><div class="hotkey">P</div> — Пипетка</li>
+              <li><div class="hotkey">[</div> — Уменьшить размер кисти</li>
+              <li><div class="hotkey">]</div> — Увеличить размер кисти</li>
+            </ul>
+            <p>Выделение</p>
+            <ul>
+              <li><div class="hotkey">Ctrl</div> + <div class="hotkey">С</div> — копировать выделенную область в буфер обмена</li>
+              <li><div class="hotkey">Ctrl</div> + <div class="hotkey">X</div> — вырезать выделенную область в буфер обмена</li>
+              <li><div class="hotkey">Esc</div> — отменить выделение</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="dropImg" class="flexed">
+      <div class="dropImg">
+        <span><i class="fas fa-image"></i></span>
+        <p>Отпустите, чтобы вставить изображение</p>
+      </div>
+    </div>
+  </div>
+  <div id="toastContainer"></div>
+  </div>
+</body>
+</html>
+=======
+<!DOCTYPE html>
+<head>
+  <title>MPaint</title>
+  <link rel="stylesheet" type="text/css" href="styles.css">
+  <script src="js/jquery-3.4.1.min.js" type="text/javascript"></script>
+  <script src="js/colors.js" type="text/javascript"></script>
+  <script src="js/CSPL.js" type="text/javascript"></script>
+  <script src="js/blur.js" type="text/javascript"></script>
+  <script src="js/mainCode.js" type="text/javascript"></script>
+</head>
+
+<body>
+  <div id="pagemax">
+    <div id="sticky_navbar">
+      <div class="options flexed">
+      <div class="flexed" id="inst_settings"></div>
+      </div>
+
+      <div class="options flexed" style="margin-right: 20px;">
+        <div class="button flexed" id="clearButton" title="Очистить холст"><img src="icons/trash-alt-solid.svg"></div>
+        <div class="button flexed" id="newCanvasButton" title="Создать новый холст [Ctrl + O]"><img src="icons/file-image-solid.svg"></div>
+        <div class="v-line"></div>
+        <div class="button flexed" id="downloadButton" title="Скачать изображение [Ctrl + S]"><img src="icons/download-solid.svg"></div>
+        <div class="button flexed" id="imageButton" title="Добавить изображение"><img src="icons/images-solid.svg"></div>
+      </div>
+    </div>
+
+  <div id="actions" class="flexed">
+  <div id="instruments"><div class="instruments flexed">
+    <div class="button flexed" id="cropButton" title="Обрезать"><img src="icons/crop-solid.svg"></div>
+    <div class="button sl flexed">
+      <div class="button flexed" id="rectselButton" title="Прямоугольное выделение"><div></div></div>
+      <div class="slin flexed el3">
+        <div class="button flexed inslin" id="lassoButton" title="Лассо"><img src="icons/lasso-solid.svg"></div>
+        <div class="button flexed inslin" id="arcselButton" title="Эллипсоидное выделение"><div></div></div>
+      </div>
+    </div>
+    <div class="h-line"></div>
+    <div class="button flexed" id="pipetteButton" title="Пипетка [P]"><img src="icons/eye-dropper-solid.svg"></div>
+    <div class="button flexed" id="brushButton" title="Кисть [B]"><img src="icons/paint-brush-solid.svg"></div>
+    <div class="button flexed" id="eraserButton" title="Ластик [E]"><img src="icons/eraser-solid.svg"></div>
+    <div class="button flexed" id="fillButton" title="Заливка [G]"><img src="icons/fill-drip-solid.svg"></div>
+    <div class="button sl flexed">
+      <div class="button flexed" id="lineButton" title="Линия"><div></div></div>
+      <div class="slin flexed el3">
+        <div class="button flexed inslin" id="rectButton" title="Прямоугольник"><div></div></div>
+        <div class="button flexed inslin" id="arcButton" title="Эллипс"><div></div></div>
+      </div>
+    </div>
+    <div class="button flexed" id="textButton" title="Текст">T</div>
+    <div class="h-line"></div>
+    <div class="button flexed" id="imagePropsButton" title="Настройки изображения"><img src="icons/sliders-h-solid.svg"></div>
+    <div class="h-line"></div>
+    <div class="flexed button" id="undoButton" style="font-size: 1.5em;" title="Отменить [Ctrl + Z]">↶</div>
+    <div class="flexed button" id="redoButton" style="font-size: 1.5em;" title="Вернуть [Ctrl + Y]">↷</div>
+    <div class="flexed" id="colorButton" title="Палитра [Space]"><div style="background: var(--main-col);"></div></div>
+    <div class="flexed" id="colors_container">
+      <div class="color_square_container flexed">
+        <div class="color_square_line flexed">
+          <div id="colorSquare">
+            <div id="squareSelector"></div>
+            <div class="color_sqr sqr1"></div> <div class="color_sqr sqr2"></div>
+          </div>
+          <div id="colorLine"><div id="lineSelector"></div></div>
+          <div id="transparentLine"><div id="transparencySelector"></div><div class="transparent_line_in"></div></div>
+        </div>
+        <div class="color_buttons flexed">
+          <div class="flexed" style="height: 100%; width: 70%;">
+            <div class="colorBtn flexed" id="updateBrush" style="background: var(--main-col);" title="Изменить основной цвет инструмента"><img src="icons/paint-brush-solid.svg">1</div>
+            <img src="icons/exchange-alt-solid.svg" id="exchange-colors" style="margin: 0px 6px;" title="Поменять цвета местами [X]">
+            <div class="colorBtn flexed" id="updateBrush2" style="background: var(--sec-col); color: white;" title="Изменить второстепенный цвет инструмента"><img src="icons/paint-brush-solid.svg">2</div>
+          </div>
+          <div class="colorBtn flexed" id="updateBackground" style="background: var(--bg-col);" title="Изменить цвет фона"><img src="icons/th-large-solid.svg"></div>
+        </div>
+      </div>
+    </div>
+    <div id="imageProperties" class="thin-scrollbar">
+      <div class="in-imageProps flexed">
+        <span class="title">Ориентация</span>
+        <div class="flexed">
+          <div class="btn flexed" style="padding: 4px;" id="flipH" title="Отразить по горизонтали">
+            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewbox="0 25 535 485" width="1em" height="1em"> <path fill-rule="evenodd" stroke="currentColor" stroke-width="25.58px" stroke-linecap="butt" stroke-linejoin="miter" fill="currentColor" d="M13.020,140.821 L234.559,268.726 L13.020,396.632 L13.020,140.821 Z"/> <path fill-rule="evenodd" fill="currentColor" stroke-width="25.58px" stroke-linecap="butt" stroke-linejoin="miter" d="M251.790,12.790 L284.790,12.790 L284.790,120.247 L251.790,120.247 L251.790,12.790 Z"/> <path fill-rule="evenodd" fill="currentColor" stroke-width="25.58px" stroke-linecap="butt" stroke-linejoin="miter" d="M251.790,147.638 L284.790,147.638 L284.790,255.095 L251.790,255.095 L251.790,147.638 Z"/> <path fill-rule="evenodd" fill="currentColor" stroke-width="25.58px" stroke-linecap="butt" stroke-linejoin="miter" d="M252.790,282.485 L285.790,282.485 L285.790,389.942 L252.790,389.942 L252.790,282.485 Z"/> <path fill-rule="evenodd" fill="currentColor" stroke-width="25.58px" stroke-linecap="butt" stroke-linejoin="miter" d="M252.790,417.333 L285.790,417.333 L285.790,524.790 L252.790,524.790 L252.790,417.333 Z"/> <path fill-rule="evenodd" stroke="currentColor" stroke-width="25.58px" stroke-linecap="butt" stroke-linejoin="miter" fill="none" d="M303.021,268.726 L524.560,140.821 L524.560,396.632 L303.021,268.726 Z"/> </svg>
+          </div>
+          <div class="btn flexed" style="padding: 4px;" id="flipV" title="Отразить по вертикали">
+            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewbox="0 25 535 485" width="1em" height="1em" style="transform: rotate(90deg);"> <path fill-rule="evenodd" stroke="currentColor" stroke-width="25.58px" stroke-linecap="butt" stroke-linejoin="miter" fill="currentColor" d="M13.020,140.821 L234.559,268.726 L13.020,396.632 L13.020,140.821 Z"/> <path fill-rule="evenodd" fill="currentColor" stroke-width="25.58px" stroke-linecap="butt" stroke-linejoin="miter" d="M251.790,12.790 L284.790,12.790 L284.790,120.247 L251.790,120.247 L251.790,12.790 Z"/> <path fill-rule="evenodd" fill="currentColor" stroke-width="25.58px" stroke-linecap="butt" stroke-linejoin="miter" d="M251.790,147.638 L284.790,147.638 L284.790,255.095 L251.790,255.095 L251.790,147.638 Z"/> <path fill-rule="evenodd" fill="currentColor" stroke-width="25.58px" stroke-linecap="butt" stroke-linejoin="miter" d="M252.790,282.485 L285.790,282.485 L285.790,389.942 L252.790,389.942 L252.790,282.485 Z"/> <path fill-rule="evenodd" fill="currentColor" stroke-width="25.58px" stroke-linecap="butt" stroke-linejoin="miter" d="M252.790,417.333 L285.790,417.333 L285.790,524.790 L252.790,524.790 L252.790,417.333 Z"/> <path fill-rule="evenodd" stroke="currentColor" stroke-width="25.58px" stroke-linecap="butt" stroke-linejoin="miter" fill="none" d="M303.021,268.726 L524.560,140.821 L524.560,396.632 L303.021,268.726 Z"/> </svg>
+          </div>
+          <div class="btn flexed" style="padding: 4px; width: 24px; height: 24px;" id="rotateC" title="Повернуть на 90° за часовой стрелкой">↻</div>
+          <div class="btn flexed" style="padding: 4px; width: 24px; height: 24px;" id="rotateAC" title="Повернуть на 90° против часовой стрелки">↺</div>
+        </div>
+        <div class="h-line"></div>
+        <span class="title">Цветокоррекция</span>
+        <div class="flexed" style="flex-direction: column; margin: 0px 15px;">
+          <div class="h-slider" id="contrastSlider"><div class="text">Контраст:</div><span></span><div class="bump"></div></div>
+          <div class="h-slider" id="saturationSlider"><div class="text">Насыщенность:</div><span></span><div class="bump"></div></div>
+          <div class="h-slider" id="brightnessSlider"><div class="text">Яркость:</div><span></span><div class="bump"></div></div>
+          <div class="h-slider" id="temperatureSlider"><div class="text">Температура:</div><span></span><div class="bump"></div></div>
+        </div>
+        <div class="flexed">
+          <div class="btn flexed" id="openCurvesButton" title="Кривые"><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewbox="-24 -24 574 574" style="width: 1em;"><defs><path d="M523.5 11.5v512h-512v-512h512z" id="a"/><path d="M5.5 516.51s347.68-73.94 254.81-244.44C167.44 101.56 517.52 24.31 517.52 24.31" id="b"/><path d="M182 13.86v171H11v-171h171z" id="c"/><path d="M353 13.86v171H182v-171h171z" id="d"/><path d="M523.5 13.86v171h-171v-171h171z" id="e"/><path d="M523.5 184.86v171h-171v-171h171z" id="f"/><path d="M353 184.86v171H182v-171h171z" id="g"/><path d="M182.5 184.86v171h-171v-171h171z" id="h"/><path d="M182.5 355.86v171h-171v-171h171z" id="i"/><path d="M353 355.86v171H182v-171h171z" id="j"/><path d="M523.5 355.86v171h-171v-171h171z" id="k"/></defs><use xlink:href="#a" fill-opacity="0"/><use xlink:href="#a" fill-opacity="0" stroke="currentColor" stroke-width="48"/><use xlink:href="#b" fill-opacity="0"/><use xlink:href="#b" fill-opacity="0" stroke="currentColor" stroke-width="24"/><use xlink:href="#c" fill-opacity="0"/><use xlink:href="#c" fill-opacity="0" stroke="currentColor"/><use xlink:href="#d" fill-opacity="0"/><use xlink:href="#d" fill-opacity="0" stroke="currentColor"/><use xlink:href="#e" fill-opacity="0"/><use xlink:href="#e" fill-opacity="0" stroke="currentColor"/><use xlink:href="#f" fill-opacity="0"/><use xlink:href="#f" fill-opacity="0" stroke="currentColor"/><g><use xlink:href="#g" fill-opacity="0"/><use xlink:href="#g" fill-opacity="0" stroke="currentColor"/></g><g><use xlink:href="#h" fill-opacity="0"/><use xlink:href="#h" fill-opacity="0" stroke="currentColor"/></g><g><use xlink:href="#i" fill-opacity="0"/><use xlink:href="#i" fill-opacity="0" stroke="currentColor"/></g><g><use xlink:href="#j" fill-opacity="0"/><use xlink:href="#j" fill-opacity="0" stroke="currentColor"/></g><g><use xlink:href="#k" fill-opacity="0"/><use xlink:href="#k" fill-opacity="0" stroke="currentColor"/></g></svg></div>
+          <div class="btn flexed" id="applyProps" style="font-size: 0.9em;">Применить</div>
+        </div>
+        <div class="h-line"></div>
+        <span class="title">Усиление резкости</span>
+        <div class="flexed">
+          <input id="sharpInput" style="width: 40%;" class="borderedInput" type="number" min=0 max=500 placeholder="0-500"/>
+          <div class="btn flexed" id="applySharpness" style="font-size: 0.9em; width: 50%;">Применить</div>
+        </div>
+        <div class="h-line"></div>
+        <span class="title">Фильтры</span>
+        <div class="btn flexed" id="openFiltersButton" style="font-size: 0.9em;">Список фильтров</div>
+        <div class="h-line"></div>
+        <span class="title">Размытие</span>
+        <div class="btn flexed" id="openBlurButton" style="font-size: 0.9em;">Настройки размытия</div>
+        <div class="btn flexed" id="TEST" style="font-size: 0.9em;">TEST</div>
+      </div>
+    </div>
+  </div></div>
+  <div class="flexed" style="width: calc(100% - 333px); height: 100%;">
+    <div class="canvases">
+      <div class="in"><div class="inin">
+      <div class="canvas_overflow"><div id="addedImage"></div></div>
+      <canvas height="600" id="dl_canvas" style="display: none;" width="1200"></canvas>
+      <canvas height="600" id="bg_canvas" style="z-index: -1;" width="1200"></canvas>
+      <canvas height="600" id="main_canvas" style="z-index: 0;" width="1200"></canvas>
+      <canvas height="600" id="undo_canvas1" style="z-index: 1;" width="1200"></canvas>
+      <div id="imageBorder">
+        <div class="in_image_border">
+          <div id="fullImageBorder">
+            <div style="position: relative; width: 100%; height: 100%;">
+              <div class="imgBorder" id="imgBordLT"></div>
+              <div class="imgBorder" id="imgBordLB"></div>
+              <div class="imgBorder" id="imgBordRT"></div>
+              <div class="imgBorder" id="imgBordRB"></div>
+              <div id="imgMove">
+                <div id="grid">
+                  <div class="vert first"></div>
+                  <div class="vert second"></div>
+                  <div class="horiz first"></div>
+                  <div class="horiz second"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="imgApply flexed"><span></span></div>
+          <div class="imgCancel flexed">×</div>
+          <div class="imgRotate flexed">↻</div>
+        </div>
+      </div>
+      <div id="text_border">
+        <div style="position: absolute; width: 100%; height: 100%;">
+          <div style="position: relative; width: 100%; height: 100%;">
+            <div class="imgApply flexed"><span></span></div>
+            <div class="imgCancel flexed">×</div>
+            <div class="imgRotate flexed">↻</div>
+          </div>
+        </div>
+        <div class="in_text_border" id="textMove">
+          <input id="addedText" type="text" value="Текст" autocomplete="off" />
+        </div>
+      </div>
+      <div id="cutSel" class="selButton flexed"><img src="icons/cut-solid.svg"></div>
+      <div id="copySel" class="selButton flexed"><img src="icons/clone-solid.svg"></div>
+      </div></div>
+      <div id="cursor"></div>
+    </div>
+  </div>
+
+  <div class="layers_container flexed visible">
+    <div class="show-hide-btn flexed">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 60 255 255" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" style="width: 0.4em;"><path fill="currentColor" d="M120 121l-116 118q-9 8 0 17l7 7q8 9 17 0l100 -102l100 102q9 8 17 0l7 -7q9 -9 0 -17l-116 -118q-8 -8 -16 0z"></path></svg>
+    </div>
+    <div class="image_info flexed">
+      <span class="title">Информация</span>
+      <div class="info">
+        <span id="infoWidth">Ширина: 1200</span>
+        <span id="infoHeight">Высота: 600</span>
+      </div>
+      <div class="info">
         <span id="infoX">Вне</span>
         <span id="infoY">холста</span>
       </div>
