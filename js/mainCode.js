@@ -1,24 +1,31 @@
 $(document).ready(function(){
 
-function getRand(min, max) {
-  min = Math.ceil(min);
-  max = Math.floor(max);
-  return Math.floor(Math.random() * (max - min)) + min;
-}
-
-function id(node) {
-  return document.getElementById(node);
-}
-function cl(node) {
-  return document.getElementsByClassName(node);
-}
-
 var InImg = {
   top: 0, left: 0, width: 0, height: 0, angle: 0, prop: 1,
   textSize: 30, textFont: 0, textStroke: false, textBold: false, textItalic: false,
 };
 var Selection = {
-  top: 0, left: 0, width: 0, height: 0, points: [], creating: 0, creatingType: 0, btns: false, cut: false,
+  top: 0, left: 0, width: 0, height: 0, savedType: 0,
+  points: [], creating: false, creatingType: 0, cut: false,
+  internalBtns: false, internalBtnsFun: function(val) {
+    if (val) {
+      [].forEach.call(cl("selButton"), (block) => {
+        block.classList.add("visible");
+        block.style.top = ((Selection.top)+(Selection.height/2)) + 'px';
+      });
+      id("cutSel").style.left = (Selection.left - 30) + 'px';
+      id("copySel").style.left = (Selection.left + Selection.width + 10) + 'px';
+    } else {
+      [].forEach.call(cl("selButton"), (block) => {
+        block.classList.remove("visible");
+      });
+    }
+  },
+  set btns(val) {
+    this.internalBtns = val;
+    this.internalBtnsFun(val);
+  },
+  get btns() {return this.internalBtns},
 };
 var select, sel;
 
@@ -35,9 +42,20 @@ var instrument = 0;
 var x1, x2, y1, y2, canvX=0, canvY=0;
 var shift = false, ctrl = false, reservedBool = false;
 var addImg = new Image(), bgImg = new Image(); addImg.setAttribute("crossorigin", "anonymous");
+bgImg.onload = function() {
+  id("canvasWidth").value = this.width;
+  id("canvasHeight").value = this.height;
+  updateCanvasPreview();
+}
 var saved_inst = "", scale = 1, brushCoords = [[],[]];
 main_x = canvas.width; main_y = canvas.height;
-var colCorrect = [0,0,0,0,0], tempData;
+var filter = null, tempData;
+const correctSliders = [
+  id("contrastSlider"),
+  id("saturationSlider"),
+  id("brightnessSlider"),
+  id("temperatureSlider")
+];
 var circle = null;
 var cx = [0,256], cy= [256,0], ck = [], cxr = [0,256], cyr = [256,0], ckr = [], cxg = [0,256], cyg = [256,0], ckg = [], cxb = [0,256], cyb = [256,0], ckb = [];
 var valsCW = new Uint8ClampedArray(256), valsCR = new Uint8ClampedArray(256), valsCG = [], valsCB = new Uint8ClampedArray(256);
@@ -74,7 +92,6 @@ var ActionBuffer = {
       if (this.count > this.max+1) {this.actions.splice(0,1); this.count--;}
       this.position = this.count;
       this.adding = false;
-      console.log("added action. Count = " + this.count, this);
     }
   },
   updateCanvas: function(){
@@ -84,6 +101,7 @@ var ActionBuffer = {
     img.onload = function() {
       updateCanvas(w, h);
       ctx.drawImage(img, 0, 0);
+      if (Selection.points != false) setSelection();
     };
     img.src = act.actions[act.position-1].base64;
   },
@@ -91,14 +109,12 @@ var ActionBuffer = {
     if (this.position > 1) {
       this.position--;
       this.updateCanvas();
-      console.log("undoed action. Position = " + this.position, this);
     }
   },
   redo: function() {
     if (this.position < this.count) {
       this.position++;
       this.updateCanvas();
-      console.log("redoed action. Position = " + this.position, this);
     }
   },
   reset: function() {
@@ -630,8 +646,8 @@ function penBrush(mode) {
     brushCoords[0] = interpolateArr(brushCoords[0],6); brushCoords[1] = interpolateArr(brushCoords[1],6);
     var len = brushCoords[0].length;
     for (var i = 0; i < len; i++) {
-      var Shift = getRand(-size/1.5, size/5);
-      var ShiftT = getRand(0, 20)/25;
+      var Shift = randomInt(-size/1.5, size/5);
+      var ShiftT = randomInt(0, 20)/25;
       var x = brushCoords[0][i], y = brushCoords[1][i], X = brushCoords[0][i+1], Y = brushCoords[1][i+1];
       ctx.globalAlpha = tr1 - ShiftT;
       ctx.beginPath();
@@ -703,45 +719,38 @@ function resetInstrument() {
 }
 
 function colorCorrection(mode) {
-  if (mode == 0) {var block = id('contrastSlider'); var valtext = "Контраст: ";} else
-  if (mode == 1) {var block = id('saturationSlider'); var valtext = "Насыщенность: ";} else
-  if (mode == 2) {var block = id('brightnessSlider'); var valtext = "Яркость: ";} else
-  if (mode == 3) {var block = id('temperatureSlider'); var valtext = "Температура: ";}
-  var x = event.pageX - $(block).offset().left;
-  if (x < 0) x = 0; else if (x > 200) x = 200; else if (x > 95 && x < 105) x = 100;
-  var value = x - 100;
-  if (value > 0) valtext += '+'+value+'%'; else valtext += value+'%';
-  block.getElementsByClassName("bump")[0].style.left = x / 2 + '%';
-  block.getElementsByClassName("text")[0].innerText = valtext;
-  if (mode == 0) {colCorrect[0] = value;} else
-  if (mode == 1) {colCorrect[1] = value;} else
-  if (mode == 2) {colCorrect[2] = value;} else
-  if (mode == 3) {colCorrect[3] = value;
-                  var red=0, blue=0;
-                  if (colCorrect[3] > 0) red = 225; else
-                  if (colCorrect[3] < 0) blue = 225;
-                  var T = Math.abs(colCorrect[3])/1500;
-                  id("tempFilter").style.background = "rgba("+red+",50,"+blue+","+T+")";
-                 }
-  canvas.style.filter = "brightness("+(100+colCorrect[2])+"%) contrast("+(100+colCorrect[0])+"%) saturate("+(100+colCorrect[1])+"%)";
+  var bl = correctSliders[mode];
+  if (Math.abs(bl.value) < 5) bl.value = 0;
+  var value = parseInt(bl.value);
+  if (value > 100) value = 100; else if (value < -100) value = -100;
+  if (mode == 3) {
+    var red=0, blue=0;
+    if (value > 0) red = 225; else
+    if (value < 0) blue = 225;
+    var T = Math.abs(value)/1500;
+    id("tempFilter").style.background = "rgba("+red+",50,"+blue+","+T+")";
+  }
+  if (value > 0) value = "+"+value;
+  bl.previousSibling.innerText = bl.getAttribute("placeholder") + ": " + value + "%";
+  canvas.style.filter = "brightness("+(100+parseInt(correctSliders[2].value))+"%) contrast("+(100+parseInt(correctSliders[0].value))+"%) saturate("+(100+parseInt(correctSliders[1].value))+"%)";
 }
 
 function applyColorCorrection() {
   var data = ctx.getImageData(0,0,main_x,main_y);
   var d = data.data;
   //КОНТРАСТ, ЯРКОСТЬ И ТЕМПЕРАТУРА//
-  var contrast = colCorrect[0]/100+1;
+  var contrast = correctSliders[0].value/100+1;
   var intercept = 128 * (1 - contrast);
-  var brightness = colCorrect[2]/100+1;
+  var brightness = correctSliders[2].value/100+1;
   var temperature = 0;
-  if (colCorrect) temperature = colCorrect[3]/8;
+  if (correctSliders[3].value) temperature = correctSliders[3].value/8;
   for (var i=0; i<d.length; i+=4){
     d[i] = d[i]*contrast*brightness + intercept + temperature;
     d[i+1] = d[i+1]*contrast*brightness + intercept;
     d[i+2] = d[i+2]*contrast*brightness + intercept - temperature;
   }
   //НАСЫЩЕННОСТЬ В РОТ Я ЕЁ КОПАЛ//
-  var sv = colCorrect[1]/100+1;
+  var sv = correctSliders[1].value/100+1;
   var luR = 0.3086, luG = 0.6094, luB = 0.0820;
   var az = (1 - sv)*luR + sv;
   var bz = (1 - sv)*luG;
@@ -765,19 +774,12 @@ function applyColorCorrection() {
     d[i + 2] = saturatedBlue;
   }
   //СБРОС НАСТРОЕК//
-  colCorrect = [0,0,0,0];
-  var blocks = cl("h-slider");
-  for (var i=0; i<blocks.length; i++) {
-    blocks[i].getElementsByClassName("bump")[0].style.left = "50%";
-    var text = blocks[i].getElementsByClassName("text")[0].innerText;
-    text = text.slice(0, text.indexOf(":")+1);
-    blocks[i].getElementsByClassName("text")[0].innerText = text;
-  }
+  id("resetProps").click();
   id("tempFilter").style.background = "";
   var button = id("applyProps");
-  button.innerText = "Настройки применены";
-  button.style.color =  "green"; button.style.borderColor = "green"; button.style.background = "transparent";
-  setTimeout(function(){button.style.color =  ""; button.style.borderColor = ""; button.style.background = ""; button.innerText = "Применить";}, 1500);
+  button.innerText = "Применено";
+  button.classList.add("applied");
+  setTimeout(function(){button.classList.remove("applied"); button.innerText = "Применить"}, 1500);
   ctx.clearRect(0,0,main_x,main_y);
   ctx.putImageData(data,0,0);
   canvas.style.filter = "";
@@ -962,10 +964,41 @@ function applyFilter(context, mode) {
       }
     }
   }
-  for (var i = 0; i < d.length; i += 4) {
-    d[i] = d[i] * power + dOriginal[i] * (1-power);
-    d[i+1] = d[i+1] * power + dOriginal[i+1] * (1-power);
-    d[i+2] = d[i+2] * power + dOriginal[i+2] * (1-power);
+  else if (mode == 12) {
+    var medD = c.getImageData(0,0,context.width,context.height);
+    StackBlur.imageDataRGB(medD,0,0,context.width,context.height,Math.floor(power*10)+1);
+    med = medD.data;
+    for (var i=0; i<d.length; i+=4) {
+      d[i] -= med[i]; d[i+1] -= med[i+1]; d[i+2] -= med[i+2];
+    }
+  } else if (mode == 13) {
+    for (var i = 0; i < d.length; i += 4) {
+      let col = Math.sqrt(d[i]*d[i]*0.3 + d[i+1]*d[i+1]*0.59 + d[i+2]*d[i+1]*0.11)*0.85;
+      d[i] = col; d[i+1] = col; d[i+2] = col;
+    }
+    c.putImageData(data,0,0);
+    c.save();
+    let grd = c.createLinearGradient(0,0,context.width,context.height);
+    grd.addColorStop(0.02,"red"); //grd.addColorStop(0.145,"#ff5200");
+    grd.addColorStop(0.29,"yellow"); grd.addColorStop(0.426,"lightgreen");
+    grd.addColorStop(0.568,"cyan"); grd.addColorStop(0.71,"blue");
+    grd.addColorStop(0.854,"purple"); grd.addColorStop(0.98,"#ff005e");
+    c.fillStyle = grd;
+    c.globalCompositeOperation = "soft-light";
+    c.fillRect(0,0,context.width,context.height);
+    c.globalAlpha = 0.2;
+    c.globalCompositeOperation = "overlay";
+    c.fillRect(0,0,context.width,context.height);
+    c.restore();
+    data = c.getImageData(0,0,context.width,context.height);
+    d = data.data;
+  }
+  if (mode != 12) {
+    for (var i = 0; i < d.length; i += 4) {
+      d[i] = d[i] * power + dOriginal[i] * (1-power);
+      d[i+1] = d[i+1] * power + dOriginal[i+1] * (1-power);
+      d[i+2] = d[i+2] * power + dOriginal[i+2] * (1-power);
+    }
   }
   c.clearRect(0,0,context.width,context.height);
   c.putImageData(data,0,0);
@@ -1045,16 +1078,17 @@ function updateCanvas(w, h) {
 }
 
 function applyBlur(canvas, mode, weight) {
+  var c = canvas.getContext('2d');
+  if (canvas == id("blurPreview")) c.putImageData(tempData, 0, 0);
   if (mode == 0) {
-    var w = Math.floor(canvas.width / main_x * weight);
+    let w = Math.floor(canvas.width / main_x * weight);
     StackBlur.canvasRGBA(canvas, 0, 0, main_x, main_y, w);
   }
-  if (mode == 1) {
-    var c = canvas.getContext('2d');
-    var width = Math.floor(canvas.width/main_x * weight);
+  else if (mode == 2) {
+    let width = Math.floor(canvas.width/main_x * weight);
     if (width < 2) width = 2;
-    var data = c.getImageData(0, 0, canvas.width, canvas.height);
-    var d = data.data;
+    let data = c.getImageData(0, 0, canvas.width, canvas.height);
+    let d = data.data;
     for (var i=0; i<canvas.height; i+=width) {
       for (var j=0; j<canvas.width; j+=width) {
         var ar = [], ag = [], ab = [];
@@ -1080,6 +1114,50 @@ function applyBlur(canvas, mode, weight) {
       }
     }
     c.putImageData(data, 0, 0);
+  }
+  else if (mode == 1) {
+    let pow = Math.floor(canvas.width / main_x * weight) / 2;
+    let data = c.getImageData(0, 0, canvas.width, canvas.height);
+    let d = data.data;
+    function getBrightness(r,g,b) {
+      let br = 0.3*r*r + 0.59*g*g + 0.11*b*b
+      return Math.sqrt(br);
+    }
+    class Particle {
+      constructor() {
+        this.x = randomInt(canvas.width); this.y = randomInt(canvas.height);
+        this.size = 0;
+      }
+      draw() {
+        let l = brightnessMap[Math.floor(this.y)][Math.floor(this.x)][0]
+        if (l > 150) {
+          this.size = brightnessMap[Math.floor(this.y)][Math.floor(this.x)][0] / 255 * pow;
+          c.fillStyle = brightnessMap[Math.floor(this.y)][Math.floor(this.x)][1];
+          c.beginPath();
+          c.arc(this.x,this.y,this.size,0,Math.PI*2);
+          c.fill();
+        }
+      }
+    }
+    let particles = 7500;
+    let brightnessMap = [];
+    for (let y=0; y<canvas.height; y++) {
+      var arr = [];
+      for (let x=0; x<canvas.width; x++) {
+        let c = 4*(canvas.width*y+x);
+        let a = [getBrightness(d[c], d[c+1], d[c+2]), `rgb(${d[c]}, ${d[c+1]}, ${d[c+2]})`];
+        arr.push(a);
+      }
+      brightnessMap.push(arr);
+    }
+    StackBlur.canvasRGB(canvas, 0, 0, canvas.width, canvas.height, pow);
+    c.save();
+    c.globalAlpha = 0.06;
+    for (let i=0; i<particles; i++) {
+      let p = new Particle;
+      p.draw();
+    }
+    c.restore();
   }
 }
 
@@ -1121,7 +1199,7 @@ id("pagemax").addEventListener('drop', function(e){
         var tried = false;
         addImg.src = url;
         addImg.onerror = function() {
-          if (!tried) {addImg.src = "https://cors-anywhere.herokuapp.com/"+url; tried = true; return;}
+          if (!tried) {addImg.src = "https://rocky-retreat-60875.herokuapp.com/"+url; tried = true; return;}
           else toastMsg("Невозможно загрузить изображение"); return;
         }
         addImg.onload = function (e) {
@@ -1310,6 +1388,7 @@ function updateCurve(vals, color) {
 
 function createSelection() {
   var mode = Selection.creatingType;
+  Selection.savedType = Selection.creatingType;
   var x2 = (event.pageX - $('#main_canvas').offset().left)/scale, y2 = (event.pageY - $('#main_canvas').offset().top)/scale;
   sel.globalAlpha = 1;
   sel.strokeStyle = 'white';
@@ -1347,21 +1426,30 @@ function createSelection() {
   }
 }
 
-function setSelection(c) {
-  var arr = Selection.points;
-  c.restore();
-  if (arr != false) {
-    c.save();
-    c.beginPath();
-    var mode = Selection.creatingType;
+function setSelection() {
+  let arr = Selection.points;
+  ctx.restore();
+  let arrStatus = arr != false;
+  if (arrStatus) {
+    ctx.save();
+    ctx.beginPath();
+    if (Selection.creatingType) Selection.savedType = Selection.creatingType;
+    var mode = Selection.savedType;
+    sel.clearRect(0,0,main_x,main_y);
+    sel.globalAlpha = 1;
+    sel.strokeStyle = 'white';
+    sel.fillStyle = 'white';
+    sel.lineWidth = 2;
     if (mode == 1) {
       var ax = [arr[0], arr[2]], ay = [arr[1], arr[3]];
       Selection.left = Math.min.apply(Math, ax);
       Selection.top = Math.min.apply(Math, ay);
       Selection.width = Math.max.apply(Math, ax) - Selection.left;
       Selection.height = Math.max.apply(Math, ay) - Selection.top;
-
-      c.rect(arr[0],arr[1],Selection.width,Selection.height);
+      sel.beginPath();
+      sel.rect(Selection.left,Selection.top,Selection.width,Selection.height);
+      ctx.rect(Selection.left,Selection.top,Selection.width,Selection.height);
+      sel.stroke();
     }
     else if (mode == 2) {
       var ax = [arr[0], arr[2]], ay = [arr[1], arr[3]];
@@ -1369,14 +1457,17 @@ function setSelection(c) {
       Selection.top = Math.min.apply(Math, ay);
       Selection.width = Math.max.apply(Math, ax) - Selection.left;
       Selection.height = Math.max.apply(Math, ay) - Selection.top;
-      c.ellipse(arr[0]+(arr[2]-arr[0])/2, arr[1]+(arr[3]-arr[1])/2, (Selection.width)/2, (Selection.height)/2, 0, 0, Math.PI*2);
+      sel.beginPath();
+      sel.ellipse(arr[0]+(arr[2]-arr[0])/2, arr[1]+(arr[3]-arr[1])/2, (Selection.width)/2, (Selection.height)/2, 0, 0, Math.PI*2);
+      ctx.ellipse(arr[0]+(arr[2]-arr[0])/2, arr[1]+(arr[3]-arr[1])/2, (Selection.width)/2, (Selection.height)/2, 0, 0, Math.PI*2);
+      sel.stroke();
     }
     else if (mode == 3) {
       sel.beginPath();
-      c.moveTo(arr[0],arr[1]);
+      ctx.moveTo(arr[0],arr[1]);
       sel.moveTo(arr[0],arr[1]);
       for (var i=2; i<arr.length; i+=2) {
-        c.lineTo(arr[i], arr[i+1]);
+        ctx.lineTo(arr[i], arr[i+1]);
         sel.lineTo(arr[i], arr[i+1]);
       }
       sel.closePath();
@@ -1391,28 +1482,18 @@ function setSelection(c) {
       Selection.width = Math.max.apply(Math, ax) - Selection.left;
       Selection.height = Math.max.apply(Math, ay) - Selection.top;
     }
-    c.clip();
-    c.closePath();
-    Selection.btns = true;
-    Array.prototype.forEach.call(cl("selButton"), (block) => {
-      block.classList.add("visible");
-      block.style.top = ((Selection.top)+(Selection.height/2)) + 'px';
-    });
-    id("cutSel").style.left = (Selection.left - 30) + 'px';
-    id("copySel").style.left = (Selection.left + Selection.width + 10) + 'px';
+    ctx.clip();
+    ctx.closePath();
   }
+  return arrStatus;
 }
 
-function selectionButtons(btn, bl) {
+function instrumentSelectionButtons(btn, bl) {
   if (!adding) {
     if (Selection.creatingType == btn) {resetInstrument(); return;}
     changeInst(bl); Selection.creatingType = btn;
     instrument = btn+7;
     updateCursor(6);
-    if (Selection.btns)
-    Array.prototype.forEach.call(cl("selButton"), (block) => {
-      block.classList.add("visible");
-    });
   }
 }
 
@@ -1422,9 +1503,6 @@ function removeSelection() {
   Selection.creating = true;
   Selection.points = [];
   ctx.restore();
-  Array.prototype.forEach.call(cl("selButton"), (block) => {
-    block.classList.remove("visible");
-  });
 }
 
 function infoCoords() {
@@ -1478,8 +1556,8 @@ function toClipboard(sel = false, bg = false) {
 function openOverflowBox(name) {
   toggleVisible(id("overlay_container"));
   var block = cl("overlay")[0];
-  for (var i=0; i<block.children.length; i++) block.children[i].style.display = "none";
-  id(name).style.display = "flex";
+  for (var i=0; i<block.children.length; i++) block.children[i].classList.remove("visible");
+  id(name).classList.add("visible")
 }
 
 function copyCut(mode) {
@@ -1536,10 +1614,10 @@ document.addEventListener('keydown', function(event) {
   if (event.code == 'Digit0' && ctrl) {id("zoom-info").click();}
   if (event.code == 'BracketLeft') {changeBrushSize(size-10);}
   if (event.code == 'BracketRight') {changeBrushSize(size+10);}
-  if (event.code == 'KeyZ' && ctrl) {
+  if (event.code == 'KeyZ' && ctrl && !shift) {
     event.preventDefault(); ActionBuffer.undo();
   }
-  if (event.code == 'KeyY' && ctrl) {
+  if (event.code == 'KeyZ' && ctrl && shift) {
     event.preventDefault(); ActionBuffer.redo();
   }
   if (event.code == 'KeyC' && ctrl && Selection.points != false) {copyCut(0);}
@@ -1619,18 +1697,6 @@ Array.prototype.forEach.call([id('copySel'), id('cutSel')], function(el, mode){
     isSliding = 1;
     e.stopPropagation();
   });
-  $("#contrastSlider").on("mousedown", function() {
-    isSliding = 2;
-  });
-  $("#saturationSlider").on("mousedown", function() {
-    isSliding = 3;
-  });
-  $("#brightnessSlider").on("mousedown", function() {
-    isSliding = 4;
-  });
-  $("#temperatureSlider").on("mousedown", function() {
-    isSliding = 5;
-  });
   $('#imageBorder #imgMove').on("mousedown", function() {
     if (!ctrl) {x1 = event.pageX - $('#main_canvas').offset().left; y1 = event.pageY - $('#main_canvas').offset().top; isMoving = 1;}
   });
@@ -1665,8 +1731,8 @@ Array.prototype.forEach.call([id('copySel'), id('cutSel')], function(el, mode){
       if (instrument != 7) ActionBuffer.addAction();
     }
     if (Selection.creating) {
-      Selection.creating = 0;
-      setSelection(ctx);
+      Selection.creating = false;
+      Selection.btns = setSelection();
     }
     if (adding == 1 || adding == 3) {InImg.top = id("imageBorder").offsetTop; InImg.left = id("imageBorder").offsetLeft;
     InImg.height = id("imageBorder").offsetHeight; InImg.width = id("imageBorder").offsetWidth;}
@@ -1682,13 +1748,11 @@ Array.prototype.forEach.call([id('copySel'), id('cutSel')], function(el, mode){
                          if (instrument==1) {drawing(undo, event, ctxX, ctxY);}
                          if (instrument==2) {drawing(ctx, event, ctxX, ctxY);}
                         }
-    if (isSliding) {
-      if (isSliding == 1) {sliding();}
-      if (isSliding == 2) {colorCorrection(0);}
+    if (isSliding) {sliding();}
+      /*if (isSliding == 2) {colorCorrection(0);}
       if (isSliding == 3) {colorCorrection(1);}
       if (isSliding == 4) {colorCorrection(2);}
-      if (isSliding == 5) {colorCorrection(3);}
-    }
+      if (isSliding == 5) {colorCorrection(3);}*/
     if (circle) {moveCircle(circle, event.pageX - $('#curvesContainer').offset().left, event.pageY - $('#curvesContainer').offset().top);}
     if (Selection.creating) {createSelection(Selection.creatingType);}
     if (isMoving == 1 && !ctrl) {moveImg(event);}
@@ -1813,20 +1877,32 @@ $('#zoom-info').click(function(){
   }
 });
 
-$('#applyProps').click(function(){
+id('resetProps').addEventListener("click",function(){
+  [].forEach.call(correctSliders, el => {
+    el.value = 0;
+    el.previousSibling.innerText = el.getAttribute("placeholder");
+  });
+  canvas.style.filter = "brightness("+(100+parseInt(correctSliders[2].value))+"%) contrast("+(100+parseInt(correctSliders[0].value))+"%) saturate("+(100+parseInt(correctSliders[1].value))+"%)";
+});
+
+id('applyProps').addEventListener("click",function(){
   applyColorCorrection();
 });
 
+[].forEach.call(correctSliders, (el, ind) => {
+  el.addEventListener("input", function(){colorCorrection(ind)});
+});
+
 id("rectselButton").addEventListener("click",function(){
-  selectionButtons(1, this);
+  instrumentSelectionButtons(1, this);
 });
 
 id("arcselButton").addEventListener("click",function(){
-  selectionButtons(2, this);
+  instrumentSelectionButtons(2, this);
 });
 
 id("lassoButton").addEventListener("click",function(){
-  selectionButtons(3, this);
+  instrumentSelectionButtons(3, this);
 });
 
 $(document).on("click", "#brushSize span", function(){
@@ -1834,11 +1910,11 @@ $(document).on("click", "#brushSize span", function(){
   toggleVisible(block);
 })
 
-$('#imagePropsButton').click(function(){
+id('imagePropsButton').addEventListener('click', function(){
     block = id("imageProperties");
     correctingBool = toggleVisible(block);
     resetInstrument();
-    canvas.style.filter = "brightness("+(100+colCorrect[2])+"%) contrast("+(100+colCorrect[0])+"%) saturate("+(100+colCorrect[1])+"%)";
+    canvas.style.filter = "brightness("+(100+parseInt(correctSliders[2].value))+"%) contrast("+(100+parseInt(correctSliders[0].value))+"%) saturate("+(100+parseInt(correctSliders[1].value))+"%)";
   if (correctingBool) {
     var div = document.createElement('div'); div.setAttribute('id','tempFilter');
     cl('in')[0].appendChild(div);
@@ -1849,28 +1925,25 @@ $('#imagePropsButton').click(function(){
   }
 });
 
-$('.filter').click(function(){
-  var mode = [].indexOf.call(cl("filter"), this);
-  id("filterPower").value = 100;
-  var canvx = id("filterPreview");
-  applyFilter(canvx, mode);
-  colCorrect[4] = mode;
-  var blocks = cl("filter");
-  for (var i=0; i<blocks.length; i++) blocks[i].getElementsByTagName("span")[0].style.background = "";
-  this.getElementsByTagName("span")[0].style.background = "green";
+[].forEach.call(cl("filter"), function(el, ind, arr){
+  el.addEventListener("click", function(){
+    let mode = [].indexOf.call(arr, this);
+    id("filterPower").value = 100;
+    let canvx = id("filterPreview");
+    applyFilter(canvx, mode);
+    filter = mode;
+    let blocks = cl("filter");
+    for (let i=0; i<blocks.length; i++) blocks[i].tag("span")[0].style.background = "";
+    this.tag("span")[0].style.background = "green";
+  });
 });
 
-$('#downloadButton').click(function(){
+id("downloadButton").addEventListener("click", function(){
   openOverflowBox("download_container");
   getDownloadBase64();
 });
 
-$(".layers_container .show-hide-btn").click(function(){
-  var block = cl("layers_container")[0];
-  toggleVisible(block);
-});
-
-$("#imageButton").click(function(){
+id("imageButton").addEventListener("click", function(){
   if (!adding) {
     openOverflowBox("addImg_container");
     var input = id("imageLink");
@@ -1880,11 +1953,11 @@ $("#imageButton").click(function(){
   }
 });
 
-$(".overlay_dark").click(function(){
+id("overlay_dark").addEventListener("click", function(){
   toggleVisible(id("overlay_container"));
 });
 
-$("#addImage").click(function(){
+id("addImage").addEventListener("click", function(){
   var tried = false;
   var url = id("imageLink").value;
   var file = id("imageFile").files[0];
@@ -1903,7 +1976,7 @@ $("#addImage").click(function(){
     } else {
       addImg.src = url;
       addImg.onerror = function() {
-        if (!tried) {addImg.src = "https://cors-anywhere.herokuapp.com/"+url; tried = true;}
+        if (!tried) {addImg.src = "https://rocky-retreat-60875.herokuapp.com/"+url; tried = true;}
         else msg.innerText = "Невозможно загрузить изображение";
         return;
       }
@@ -1917,16 +1990,26 @@ $("#addImage").click(function(){
 
 document.onpaste = function(event){
   if (!$("input").is(":focus")) {
-    var items = (event.clipboardData || event.originalEvent.clipboardData).items;
-    var url;
+    let items = (event.clipboardData || event.originalEvent.clipboardData).items;
+    let url;
     for (var index in items) {
-      var item = items[index];
+      let item = items[index];
       if (item.kind === 'file') {
-        var blob = item.getAsFile();
-        var reader = new FileReader();
+        let blob = item.getAsFile();
+        let reader = new FileReader();
         reader.onload = function(event){
           url = reader.result;
-          addImage(url);
+          if (id("editCanvas_container").classList.contains("visible") && id("overlay_container").classList.contains("visible")) {
+            bgImg.src = url;
+            var block = id("pasteImg");
+            block.classList.add("visible");
+            var checker = id("pasteImg").getElementsByTagName("input")[0];
+            checker.checked = true;
+            id("dim_presetFile").nextElementSibling.innerText = "Скопированное изображение"
+          } else {
+            console.log("loaded")
+            addImage(url);
+          }
         };
         reader.readAsDataURL(blob);
       }
@@ -2029,7 +2112,7 @@ $(document).on('click', ".imgApply", function(){
   return;
 });
 
-$("#textButton").click(function(){
+id("textButton").addEventListener("click", function(){
     if (!adding) {
       cl("imgRotate")[0].style.display = "";
       adding = 2;
@@ -2087,11 +2170,6 @@ id("dim_presetFile").onchange = function(e) {
     reader.onload = function() {
       url = reader.result;
       bgImg.src = url;
-      bgImg.onload = function() {
-        id("canvasWidth").value = this.width;
-        id("canvasHeight").value = this.height;
-        updateCanvasPreview();
-      }
     }
     reader.readAsDataURL(file);
     var fileName = '';
@@ -2140,9 +2218,6 @@ id("updateCanvas").addEventListener("click", function(){
   cl("in")[0].style.left = canvX + 'px';
   InImg.textSize = Math.round(main_x * main_y / 24000);
   Selection.btns = false;
-  Array.prototype.forEach.call(cl("selButton"), (block) => {
-    block.classList.remove("visible");
-  });
   if (id("pasteImg").getElementsByTagName("input")[0].checked) {
     ctx.drawImage(bgImg,0,0);
   }
@@ -2177,13 +2252,13 @@ id("openHotkeysButton").addEventListener("click", function(){
 });
 
 id("applyFilter").addEventListener("click", function(){
-  applyFilter(canvas, colCorrect[4]);
+  applyFilter(canvas, filter);
   toggleVisible(id("overlay_container"));
 });
 
 id("filterPower").addEventListener("change", function(){
   var canvx = id("filterPreview");
-  applyFilter(canvx, colCorrect[4]);
+  applyFilter(canvx, filter);
 });
 
 id("applySharpness").addEventListener("click", function(){
@@ -2418,7 +2493,7 @@ if (urlParams.get("imagesrc")) {
     return;
   }
   urlImg.onerror = function() {
-    if (!tried) {urlImg.src = "https://cors-anywhere.herokuapp.com/"+urlImg.src; tried = true; return;}
+    if (!tried) {urlImg.src = "https://rocky-retreat-60875.herokuapp.com/"+urlImg.src; tried = true; return;}
     else toastMsg("Невозможно загрузить изображение"); return;
   }
   urlImg.src = urlParams.get("imagesrc");
