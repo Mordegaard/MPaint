@@ -28,7 +28,7 @@ var Selection = {
   get btns() {return this.internalBtns},
 };
 var select, sel;
-
+const fontAvailable = new Set();
 var canvas = id('main_canvas');
 var instBlock = id("inst_settings");
 var ctx = canvas.getContext('2d');
@@ -685,29 +685,24 @@ function penBrush(mode) {
       newArr.push(arr[arr.length-1]);
       return newArr;
     }
-    for (var i=0; i<6; i++) {
+    for (var i=0; i<8; i++) {
       nbx = smooth(nbx); nby = smooth(nby);
     }
-    for (var i = 0; i < nbx.length; i++) {
-        var x = nbx[i], y = nby[i], X = nbx[i+1], Y = nby[i+1];
+    ctx.moveTo(nbx[0], nby[0]);
+    for (var i = 1; i < nbx.length; i++) {
+        let x = nbx[i], y = nby[i];
         ctx.globalAlpha = tr1 - ShiftT;
         ctx.beginPath();
         ctx.lineCap = "round";
         ctx.strokeStyle = selectedColor;
         ctx.lineWidth = size;
-        ctx.moveTo(x,y);
-        ctx.lineTo(X, Y);
+        ctx.lineTo(x, y);
         ctx.stroke();
         ctx.closePath();
     }
   }
   brushCoords = [[],[]];
   ctx.globalAlpha = tr1;
-}
-
-function toggleVisible(block) {
-  if ( block.classList.contains("visible") ) {block.classList.remove("visible"); return false;}
-  else {block.classList.add("visible"); return true;}
 }
 
 function resetInstrument() {
@@ -1130,7 +1125,7 @@ function applyBlur(canvas, mode, weight) {
       }
       draw() {
         let l = brightnessMap[Math.floor(this.y)][Math.floor(this.x)][0]
-        if (l > 150) {
+        if (l > 136) {
           this.size = brightnessMap[Math.floor(this.y)][Math.floor(this.x)][0] / 255 * pow;
           c.fillStyle = brightnessMap[Math.floor(this.y)][Math.floor(this.x)][1];
           c.beginPath();
@@ -1554,7 +1549,7 @@ function toClipboard(sel = false, bg = false) {
 }
 
 function openOverflowBox(name) {
-  toggleVisible(id("overlay_container"));
+  id("overlay_container").changeVisible(true);
   var block = cl("overlay")[0];
   for (var i=0; i<block.children.length; i++) block.children[i].classList.remove("visible");
   id(name).classList.add("visible")
@@ -1661,7 +1656,7 @@ Array.prototype.forEach.call([id('copySel'), id('cutSel')], function(el, mode){
 });
 
   un1.addEventListener("mousedown", function() {
-    if (instrument != 6 && !ctrl && !correctingBool && !adding) {
+    if (instrument != 6 && !ctrl && !adding) {
       ActionBuffer.adding = true;
       if (!(instrument>2 && instrument < 6)) {ctx.globalAlpha = tr1; un1.style.opacity = tr1;}
       else {
@@ -1788,7 +1783,7 @@ cl('inin')[0].addEventListener('mouseleave', function(){
 
 $('#brushButton').click(function(){
   if (instrument == 1) {resetInstrument(); return;}
-  if (!adding && !correctingBool) {
+  if (!adding) {
     changeInst(this); instrument=1;
     updateCursor(1);
     instBlock.innerHTML = '<span class="flexed" style="color: white; height: 100%; margin: 0px 15px;">Размер пера: </span><div class="flexed" id="brushSize"><span style="text-align: center; width: 100%;">'+size+'px</span><div class="slider flexed" id="size_slider"><div style="position: relative; width: 100%;"><div class="slider_button" style="left:' + size + 'px;"></div> <div class="slider_line"><div style="width:'+ size +'px;"></div></div></div></div></div><select id="penType" style="margin:0px 10px;"><option>Обычное перо</option>  <option>Тонкие края</option>  <option>Карандаш</option>  <option>Плавная линия</option></select>';
@@ -1797,7 +1792,7 @@ $('#brushButton').click(function(){
 
 $('#eraserButton').click(function(){
   if (instrument == 2) {resetInstrument(); return;}
-  if (!adding && !correctingBool) {
+  if (!adding) {
     changeInst(this); instrument=2;
     updateCursor(2);
     instBlock.innerHTML = '<span class="flexed" style="color: white; height: 100%; margin: 0px 15px;">Размер пера: </span><div class="flexed" id="brushSize"><span style="text-align: center; width: 100%;">'+size+'px</span><div class="slider flexed" id="size_slider"><div style="position: relative; width: 100%;"><div class="slider_button" style="left:' + size + 'px;"></div> <div class="slider_line"><div style="width:'+ size +'px;"></div></div></div></div></div>';
@@ -1806,7 +1801,7 @@ $('#eraserButton').click(function(){
 
 $('#fillButton').click(function(){
   if (instrument == 7) {resetInstrument(); return;}
-  if (!adding && !correctingBool) {
+  if (!adding) {
     changeInst(this); instrument=7;
     updateCursor(7);
     instBlock.innerHTML = '<span style="margin: 0px 15px;">Допуск: </span><input type="number" min="0" max="255" id="fillWeight" style="width: 55px;" class="borderedInput" placeholder="0-255"/>';
@@ -1815,7 +1810,7 @@ $('#fillButton').click(function(){
 
 $('#lineButton').click(function(){
   if (instrument == 3) {resetInstrument(); return;}
-  if (!adding && !correctingBool) {
+  if (!adding) {
     changeInst(this); instrument = 3;
     updateCursor(3);
     instBlock.innerHTML = '<span class="flexed" style="color: white; height: 100%; margin: 0px 15px;">Толщина линии: </span><div class="flexed" id="brushSize"><span style="text-align: center; width: 100%;">'+size+'px</span><div class="slider flexed" id="size_slider"><div style="position: relative; width: 100%;"><div class="slider_button" style="left:' + size + 'px;"></div> <div class="slider_line"><div style="width:'+ size +'px;"></div></div></div></div></div><select id="lineType" style="margin:0px 10px;"><option>Прямые края</option>  <option>Скруглённые края</option>  <option>Стрелка</option></select>';
@@ -1824,7 +1819,7 @@ $('#lineButton').click(function(){
 
 $('#rectButton').click(function(){
   if (instrument == 4) {resetInstrument(); return;}
-  if (!adding && !correctingBool) {
+  if (!adding) {
     changeInst(this); instrument = 4;
     updateCursor(4);
     instBlock.innerHTML = '<span class="flexed" style="color: white; height: 100%; margin: 0px 15px;">Толщина контура: </span><div class="flexed" id="brushSize"><span style="text-align: center; width: 100%;">'+size+'px</span><div class="slider flexed" id="size_slider"><div style="position: relative; width: 100%;"><div class="slider_button" style="left:' + size + 'px;"></div> <div class="slider_line"><div style="width:'+ size +'px;"></div></div></div></div></div><label class="input_cont flexed"><input id="strokeShape" type="checkbox" /><div class="input_style"></div><span>Обводка контура</span></label><label class="input_cont flexed"><input id="fillShape" type="checkbox" checked /><div class="input_style"></div><span>Заливка</span></label>';
@@ -1833,7 +1828,7 @@ $('#rectButton').click(function(){
 
 $('#arcButton').click(function(){
   if (instrument == 5) {resetInstrument(); return;}
-  if (!adding && !correctingBool) {
+  if (!adding) {
     changeInst(this); instrument = 5;
     updateCursor(5);
     instBlock.innerHTML = '<span class="flexed" style="color: white; height: 100%; margin: 0px 15px;">Толщина контура: </span><div class="flexed" id="brushSize"><span style="text-align: center; width: 100%;">'+size+'px</span><div class="slider flexed" id="size_slider"><div style="position: relative; width: 100%;"><div class="slider_button" style="left:' + size + 'px;"></div> <div class="slider_line"><div style="width:'+ size +'px;"></div></div></div></div></div><label class="input_cont flexed"><input id="strokeShape" type="checkbox" /><div class="input_style"></div><span>Обводка контура</span></label><label class="input_cont flexed"><input id="fillShape" type="checkbox" checked /><div class="input_style"></div><span>Заливка</span></label>';
@@ -1842,15 +1837,14 @@ $('#arcButton').click(function(){
 
 id("pipetteButton").addEventListener("click", function(){
   if (instrument == 6) {resetInstrument(); return;}
-  if (!adding && !correctingBool) {
+  if (!adding) {
     changeInst(this); instrument = 6;
     updateCursor(6);
   }
 });
 
 id("colorButton").addEventListener("click", function(){
-  var block = cl("color_square_container")[0];
-  toggleVisible(block);
+  cl("color_square_container")[0].changeVisible();
 });
 
 id("undoButton").addEventListener("click", function(){
@@ -1906,14 +1900,12 @@ id("lassoButton").addEventListener("click",function(){
 });
 
 $(document).on("click", "#brushSize span", function(){
-  var block = id("size_slider");
-  toggleVisible(block);
+  id("size_slider").changeVisible();
 })
 
 id('imagePropsButton').addEventListener('click', function(){
     block = id("imageProperties");
-    correctingBool = toggleVisible(block);
-    resetInstrument();
+    correctingBool = !block.changeVisible();
     canvas.style.filter = "brightness("+(100+parseInt(correctSliders[2].value))+"%) contrast("+(100+parseInt(correctSliders[0].value))+"%) saturate("+(100+parseInt(correctSliders[1].value))+"%)";
   if (correctingBool) {
     var div = document.createElement('div'); div.setAttribute('id','tempFilter');
@@ -1954,7 +1946,7 @@ id("imageButton").addEventListener("click", function(){
 });
 
 id("overlay_dark").addEventListener("click", function(){
-  toggleVisible(id("overlay_container"));
+  id("overlay_container").changeVisible(false);
 });
 
 id("addImage").addEventListener("click", function(){
@@ -2048,46 +2040,29 @@ $(document).on('click', ".imgApply", function(){
     id("addedImage").style.backgroundImage = "none";
   } else if (adding == 2) {
     ctx.beginPath();
-    var i = id("addedText");
-    var t = i.value;
-    var style;
-    var fSize = id("fontSize").value;
-    var Shift = 0;
-    if (InImg.textFont == 3) {
-      Shift = fSize / 2.8;
-      style = "ComicSans, cursive, sans-serif";
-    }
-    if (InImg.textFont == 2) {
-      Shift = fSize / 8;
-      style = "Impact, sans-serif"
-    }
-    if (InImg.textFont == 0) {
-      Shift = fSize / 7;
-      style = "Arial, sans-serif";
-    }
-    if (InImg.textFont == 1) {
-      Shift = fSize / 7;
-      style = "TimesNewRoman, sans"
-    }
+    let i = id("addedText");
+    let t = i.value;
+    let style = id("fontStyle").value;
+    let fSize = id("fontSize").value;
     var res = fSize + "px " + style;
     if (id("boldText").checked) res = "bold " + res;
     if (id("italicText").checked) res = "italic " + res;
     ctx.font = res;
     ctx.textAlign = "center"
-    ctx.textBaseline = "top";
+    ctx.textBaseline = "middle";
     var container = id("text_border");
     InImg.textStroke = id("strokeText").checked;
     ctx.save();
-    ctx.translate(InImg.left+container.offsetWidth/2, InImg.top+container.offsetHeight/2);
+    ctx.translate(InImg.left+container.offsetWidth/2, InImg.top+container.offsetHeight/1.25);
     ctx.rotate(InImg.angle * Math.PI / 180);
     if (InImg.textStroke) {
-      var stroke = fSize / 12;
+      var stroke = fSize / 10;
       ctx.lineWidth = stroke;
       ctx.strokeStyle = selectedColor2;
-      ctx.strokeText(t,0, -container.offsetHeight/2+12+Shift);
+      ctx.strokeText(t,0, -container.offsetHeight/2+12);
     }
     ctx.fillStyle = selectedColor;
-    ctx.fillText(t, 0, -container.offsetHeight/2+12+Shift);
+    ctx.fillText(t, 0, -container.offsetHeight/2+12);
     ctx.restore();
     id("text_border").style.display = "none";
     ctx.closePath();
@@ -2117,7 +2092,15 @@ id("textButton").addEventListener("click", function(){
       cl("imgRotate")[0].style.display = "";
       adding = 2;
       resetInstrument();
-    instBlock.innerHTML = '<div class="imgApply flexed"><span></span></div><div class="imgCancel flexed">×</div>   <label class="fontSize"><div>T<span>↕</span></div><input type="number" min="0" id="fontSize" placeholder="px"/></label>   <select id="fontStyle" style="margin:0px 10px;"><option style="font-family:Arial, sans-serif;" value="Arial, sans-serif">Arial</option> <option style="font-family:TimesNewRoman, sans;" value="TimesNewRoman, sans">Times New Roman</option> <option style="font-family:Impact, sans-serif;" value="Impact, sans-serif">Impact</option> <option style="font-family:ComicSans, cursive, sans-serif" value="ComicSans, cursive, sans-serif">Comic Sans</option></select><label class="input_cont flexed"><input id="strokeText" type="checkbox" /><div class="input_style"></div><span>Обводка текста</span></label><label class="input_cont flexed"><input id="boldText" type="checkbox" /><div class="input_style"></div><span>Жирный</span></label><label class="input_cont flexed"><input id="italicText" type="checkbox" /><div class="input_style"></div><span>Курсив</span></label>';
+    instBlock.innerHTML = '<div class="imgApply flexed"><span></span></div><div class="imgCancel flexed">×</div>   <label class="fontSize"><div>T<span>↕</span></div><input type="number" min="0" id="fontSize" placeholder="px"/></label>   <select id="fontStyle" style="margin:0px 10px;"></select><label class="input_cont flexed"><input id="strokeText" type="checkbox" /><div class="input_style"></div><span>Обводка текста</span></label><label class="input_cont flexed"><input id="boldText" type="checkbox" /><div class="input_style"></div><span>Жирный</span></label><label class="input_cont flexed"><input id="italicText" type="checkbox" /><div class="input_style"></div><span>Курсив</span></label>';
+    let fStyle = id("fontStyle");
+    fontAvailable.forEach(item=>{
+      let option = document.createElement('option');
+      option.innerText = item;
+      option.value = item;
+      option.style.fontFamily = item;
+      fStyle.append(option)
+    });
     id("fontSize").value = InImg.textSize;
     id("fontStyle").selectedIndex = InImg.textFont;
     id("strokeText").checked = InImg.textStroke;
@@ -2209,7 +2192,7 @@ $('#canvasWidth, #canvasHeight').on('change', function(){
 });
 
 id("updateCanvas").addEventListener("click", function(){
-  var w = parseInt(id("canvasWidth").value), h = parseInt(id("canvasHeight").value);
+  let w = parseInt(id("canvasWidth").value), h = parseInt(id("canvasHeight").value);
   updateCanvas(w, h);
   if (w > h) scale = 1200 / w - 0.05; else scale = 600 / h - 0.05;
   updateZoom(scale);
@@ -2222,7 +2205,7 @@ id("updateCanvas").addEventListener("click", function(){
     ctx.drawImage(bgImg,0,0);
   }
   ActionBuffer.reset();
-  toggleVisible(id("overlay_container"));
+  id("overlay_container").changeVisible();
 });
 
 id("newCanvasButton").addEventListener("click", function(){
@@ -2253,7 +2236,7 @@ id("openHotkeysButton").addEventListener("click", function(){
 
 id("applyFilter").addEventListener("click", function(){
   applyFilter(canvas, filter);
-  toggleVisible(id("overlay_container"));
+  id("overlay_container").changeVisible(false);
 });
 
 id("filterPower").addEventListener("change", function(){
@@ -2263,17 +2246,19 @@ id("filterPower").addEventListener("change", function(){
 
 id("applySharpness").addEventListener("click", function(){
   var pow = id("sharpInput").value / 100;
-  if (pow < 0 || pow > 5) pow = 0.5;
-  applySharpness(canvas, 0, pow, 0);
+  if (pow) {
+    if (pow < 0 || pow > 5) pow = 0.5;
+    applySharpness(canvas, 0, pow, 0);
+  } else {toastMsg("Введите корректное значение")}
 });
 
 id("downloadBtn").addEventListener("click", function(){
-  var fm;
+  let fm;
   if (id("jpg").checked) {fm="jpg";}
     else if (id("png").checked) {fm="png";}
       else if (id("webp").checked) {fm="webp";}
-  var link = document.createElement('a');
-  var name = id("downloadName").value;
+  const link = document.createElement('a');
+  let name = id("downloadName").value;
   if (!name) name = "mordegaard-paint";
   link.download = name+"."+fm;
   link.href = base64;
@@ -2287,7 +2272,7 @@ id("cropButton").addEventListener("click", function(){
     cl("imgRotate")[0].style.display = "none";
     id("grid").style.display = "";
     resetInstrument();
-    if (correctingBool) $('#imagePropsButton').click();
+    if (correctingBool) id('imagePropsButton').click();
     canvas.style.filter = "brightness(0.5)"; id('bg_canvas').style.filter = "brightness(0.5)";
     var brd = id("imageBorder");
     instBlock.innerHTML = '<div class="imgApply flexed"><span></span></div><div class="imgCancel flexed">×</div><span style="margin-left:20px;">Оригинал: </span><span id="origRes">'+main_x+'x'+main_y+'</span><span style="margin-left:20px;">Новое разрешение: </span><span id="newRes">'+main_x+'x'+main_y+'</span>';
@@ -2345,7 +2330,7 @@ id("openBlurButton").addEventListener('click',function(){
 
 id("applyBlurBtn").addEventListener('click',function(){
   var weight = id("blurPower").value;
-  toggleVisible(id("overlay_container"));
+  id("overlay_container").changeVisible(false);
   var mode = 0;
   [].forEach.call(document.getElementsByName("blur"), (el, ind) => {
     if (el.checked) mode = ind;
@@ -2419,7 +2404,7 @@ $(".curve_channels").click(function(){
 });
 
 id("applyCurvesBtn").addEventListener('click',function() {
-  toggleVisible(id("overlay_container"));
+  id("overlay_container").changeVisible(false);
   var vals = [];
   for (var i=0; i < 256; i++) {vals[i] = CSPL.evalSpline(i, cx, cy, ck);}
   var data = ctx.getImageData(0,0,main_x,main_y);
@@ -2498,6 +2483,22 @@ if (urlParams.get("imagesrc")) {
   }
   urlImg.src = urlParams.get("imagesrc");
 }
+
+const fontCheck = new Set([
+  // Windows 10
+'Arial', 'Arial Black', 'Bahnschrift', 'Calibri', 'Cambria', 'Cambria Math', 'Candara', 'Comic Sans MS', 'Consolas', 'Constantia', 'Corbel', 'Courier New', 'Ebrima', 'Franklin Gothic Medium', 'Gabriola', 'Gadugi', 'Georgia', 'HoloLens MDL2 Assets', 'Impact', 'Ink Free', 'Javanese Text', 'Leelawadee UI', 'Lucida Console', 'Lucida Sans Unicode', 'Malgun Gothic', 'Marlett', 'Microsoft Himalaya', 'Microsoft JhengHei', 'Microsoft New Tai Lue', 'Microsoft PhagsPa', 'Microsoft Sans Serif', 'Microsoft Tai Le', 'Microsoft YaHei', 'Microsoft Yi Baiti', 'MingLiU-ExtB', 'Mongolian Baiti', 'MS Gothic', 'MV Boli', 'Myanmar Text', 'Nirmala UI', 'Palatino Linotype', 'Segoe MDL2 Assets', 'Segoe Print', 'Segoe Script', 'Segoe UI', 'Segoe UI Historic', 'Segoe UI Emoji', 'Segoe UI Symbol', 'SimSun', 'Sitka', 'Sylfaen', 'Symbol', 'Tahoma', 'Times New Roman', 'Trebuchet MS', 'Verdana', 'Webdings', 'Wingdings', 'Yu Gothic',
+  // macOS
+  'American Typewriter', 'Andale Mono', 'Arial', 'Arial Black', 'Arial Narrow', 'Arial Rounded MT Bold', 'Arial Unicode MS', 'Avenir', 'Avenir Next', 'Avenir Next Condensed', 'Baskerville', 'Big Caslon', 'Bodoni 72', 'Bodoni 72 Oldstyle', 'Bodoni 72 Smallcaps', 'Bradley Hand', 'Brush Script MT', 'Chalkboard', 'Chalkboard SE', 'Chalkduster', 'Charter', 'Cochin', 'Comic Sans MS', 'Copperplate', 'Courier', 'Courier New', 'Didot', 'DIN Alternate', 'DIN Condensed', 'Futura', 'Geneva', 'Georgia', 'Gill Sans', 'Helvetica', 'Helvetica Neue', 'Herculanum', 'Hoefler Text', 'Impact', 'Lucida Grande', 'Luminari', 'Marker Felt', 'Menlo', 'Microsoft Sans Serif', 'Monaco', 'Noteworthy', 'Optima', 'Palatino', 'Papyrus', 'Phosphate', 'Rockwell', 'Savoye LET', 'SignPainter', 'Skia', 'Snell Roundhand', 'Tahoma', 'Times', 'Times New Roman', 'Trattatello', 'Trebuchet MS', 'Verdana', 'Zapfino',
+].sort());
+
+(async() => {
+  await document.fonts.ready;
+  for (const font of fontCheck.values()) {
+    if (document.fonts.check(`12px "${font}"`)) {
+      fontAvailable.add(font);
+    }
+  }
+})();
 
 resetInstrument();
 updateZoom(0.9);
