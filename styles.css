@@ -822,6 +822,8 @@ input[type="radio"] {
 #filter7 div {background: 0% / cover url(images/filter7.jpg);}
 #filter8 div {background: 0% / cover url(images/filter8.jpg);}
 #filter10 div {background: 0% / cover url(images/filter10.jpg);}
+#filter12 div {background: 0% / cover url(images/filter12.jpg);}
+#filter13 div {background: 0% / cover url(images/filter13.jpg);}
 
 #tempFilter {width: 100%; height: 100%; top: 0; position: absolute;}
 
@@ -839,7 +841,7 @@ input[type="radio"] {
 .borderedInput {
   background: none;
   border: 1px solid #348bee;
-  padding: 4px;
+  padding: 3px;
 }
 #fontSize {
   background: none;
