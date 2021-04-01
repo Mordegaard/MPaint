@@ -78,7 +78,7 @@ var ActionBuffer = {
   count: 0,
   position: 0,
   adding: true,
-  addAction: function(needToCheckAdding = true) {
+  addAction: async function(needToCheckAdding = true) {
     if (this.adding || !needToCheckAdding) {
       this.count = this.position;
       this.actions.splice(this.count, this.actions.length);
@@ -105,13 +105,13 @@ var ActionBuffer = {
     };
     img.src = act.actions[act.position-1].base64;
   },
-  undo: function() {
+  undo: async function() {
     if (this.position > 1) {
       this.position--;
       this.updateCanvas();
     }
   },
-  redo: function() {
+  redo: async function() {
     if (this.position < this.count) {
       this.position++;
       this.updateCanvas();
@@ -1723,7 +1723,7 @@ Array.prototype.forEach.call([id('copySel'), id('cutSel')], function(el, mode){
         else penBrush(id("penType").selectedIndex);
       }
       undo.clearRect(0,0,main_x,main_y);
-      if (instrument != 7) ActionBuffer.addAction();
+      if (instrument > 0 && instrument != 7) ActionBuffer.addAction();
     }
     if (Selection.creating) {
       Selection.creating = false;
@@ -1903,6 +1903,10 @@ $(document).on("click", "#brushSize span", function(){
   id("size_slider").changeVisible();
 })
 
+cl("show-hide-btn")[0].addEventListener("click",function(){
+  this.parentElement.changeVisible();
+});
+
 id('imagePropsButton').addEventListener('click', function(){
     block = id("imageProperties");
     correctingBool = !block.changeVisible();
@@ -2050,10 +2054,10 @@ $(document).on('click', ".imgApply", function(){
     ctx.font = res;
     ctx.textAlign = "center"
     ctx.textBaseline = "middle";
-    var container = id("text_border");
+    var container = id("addedText");
     InImg.textStroke = id("strokeText").checked;
     ctx.save();
-    ctx.translate(InImg.left+container.offsetWidth/2, InImg.top+container.offsetHeight/1.25);
+    ctx.translate(InImg.left+container.offsetWidth/2+10, InImg.top+container.offsetHeight*1.05);
     ctx.rotate(InImg.angle * Math.PI / 180);
     if (InImg.textStroke) {
       var stroke = fSize / 10;
@@ -2124,7 +2128,7 @@ id("textButton").addEventListener("click", function(){
     updateInputWidth(this);
   });
 
-  $(document).on("change","#fontSize", function() {
+  $(document).on("input","#fontSize", function() {
     InImg.textSize = id("fontSize").value;
     id("addedText").style.fontSize = InImg.textSize + 'px';
     updateInputWidth(id("addedText"));
@@ -2163,7 +2167,7 @@ id("dim_presetFile").onchange = function(e) {
     block.classList.add("visible");
     var checker = id("pasteImg").getElementsByTagName("input")[0];
     checker.checked = true;
-    this.files = undefined;
+    this.value = null;
 };
 
 $('.dim_preset').click(function(){
@@ -2464,7 +2468,7 @@ id("copyBtn").addEventListener("click", function(){
 });
 
 id("TEST").addEventListener("click", function(){
-  toClipboard();
+  toastMsg("😻");
 });
 
 const urlParams = new URLSearchParams(window.location.search);
