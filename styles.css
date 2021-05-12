@@ -940,7 +940,7 @@ input[type="radio"] {
 }
 #download_container input.checker:checked + label.checker, #blur_container input.checker:checked + label.checker {background: #348bee; color: white;}
 
-#dropImg {display: none; z-index: 1;}
+#dropImg {display: none; z-index: 999;}
 #actions.draggedFile #dropImg {display: flex;}
 #dropImg .dropImg {
   padding: 30px 50px;

@@ -85,7 +85,7 @@ var ActionBuffer = {
       var action = {
         width: canvas.width,
         height: canvas.height,
-        base64: canvas.toDataURL()
+        data: ctx.getImageData(0,0,canvas.width,canvas.height)
       };
       this.actions.push(action);
       this.count++;
@@ -96,14 +96,10 @@ var ActionBuffer = {
   },
   updateCanvas: function(){
     var act = this;
-    var img = new Image();
     var w = act.actions[act.position-1].width, h = act.actions[act.position-1].height;
-    img.onload = function() {
-      updateCanvas(w, h);
-      ctx.drawImage(img, 0, 0);
-      if (Selection.points != false) setSelection();
-    };
-    img.src = act.actions[act.position-1].base64;
+    updateCanvas(w, h);
+    ctx.putImageData(act.actions[act.position-1].data, 0, 0);
+    if (Selection.points != false) setSelection();
   },
   undo: async function() {
     if (this.position > 1) {
@@ -123,7 +119,7 @@ var ActionBuffer = {
     this.actions.push({
       width: canvas.width,
       height: canvas.height,
-      base64: canvas.toDataURL()
+      data: ctx.getImageData(0,0,canvas.width,canvas.height)
     });
   },
 };
@@ -458,6 +454,17 @@ function updateZoom(sc) {
   id("bg_canvas").style.backgroundSize = 1/scale + "%";
 }
 
+function resetZoom() {
+  canvX = 0; canvY = 0;
+  cl("in")[0].style.top = (canvY) + 'px';
+  cl("in")[0].style.left = (canvX) + 'px';
+  if (main_x > main_y) scale = 1200 / main_x - 0.05; else scale = 600 / main_y - 0.05;
+  updateZoom(scale);
+  if (ctrl && shift) {
+    id("TEST").style.display = "flex";
+  }
+}
+
 function updateCursor(a) {
   var cursor = id("cursor");
   if (a == 1 || a == 2) {
@@ -660,46 +667,26 @@ function penBrush(mode) {
       ctx.closePath();
     }
   } else if (mode == 3) {
-    var nbx = [], nby = [];
-    var spx = [], spy = [];
-    for (var i=1; i<brushCoords[0].length; i++) {
-      spx.push(Math.abs(brushCoords[0][i] - brushCoords[0][i-1]));
-      spy.push(Math.abs(brushCoords[1][i] - brushCoords[1][i-1]));
+    var spx = [], spy = [], mpx = [], mpy = [];
+    for (let i=0; i<brushCoords[0].length; i+=3) {
+      spx.push(brushCoords[0][i]); spy.push(brushCoords[1][i]);
     }
-    var speed = (median(spx) + median(spy)) / 2.25;
-    if (speed > 8) speed = 8;
-    speed = Math.round(9-speed);
-    for (var i=0; i<brushCoords[0].length; i+=speed) {
-      nbx.push(brushCoords[0][i]);
-      nby.push(brushCoords[1][i]);
+    for (var i=0; i<spx.length-1; i++) {
+      mpx.push(spx[i] + (spx[i+1] - spx[i])/2);
+      mpy.push(spy[i] + (spy[i+1] - spy[i])/2);
     }
-    nbx.push(brushCoords[0][brushCoords[0].length-1]);
-    nby.push(brushCoords[1][brushCoords[1].length-1]);
-    function smooth(arr) {
-      var newArr = [arr[0]];
-      for (var i=1; i<arr.length; i++) {
-        var start = arr[i-1] + (arr[i]-arr[i-1])/3;
-        var end = arr[i] - (arr[i]-arr[i-1])/3;
-        newArr.push(start); newArr.push(end);
-      }
-      newArr.push(arr[arr.length-1]);
-      return newArr;
+    ctx.globalAlpha = tr1;
+    ctx.beginPath();
+    ctx.lineCap = "round";
+    ctx.strokeStyle = selectedColor;
+    ctx.lineWidth = size;
+    ctx.moveTo(spx[0], spy[0]);
+    for (let i=1; i<spx.length; i++) {
+      ctx.quadraticCurveTo(spx[i], spy[i], mpx[i], mpy[i]);
     }
-    for (var i=0; i<8; i++) {
-      nbx = smooth(nbx); nby = smooth(nby);
-    }
-    ctx.moveTo(nbx[0], nby[0]);
-    for (var i = 1; i < nbx.length; i++) {
-        let x = nbx[i], y = nby[i];
-        ctx.globalAlpha = tr1 - ShiftT;
-        ctx.beginPath();
-        ctx.lineCap = "round";
-        ctx.strokeStyle = selectedColor;
-        ctx.lineWidth = size;
-        ctx.lineTo(x, y);
-        ctx.stroke();
-        ctx.closePath();
-    }
+    ctx.lineTo(brushCoords[0][brushCoords[0].length-1], brushCoords[1][brushCoords[1].length-1]);
+    ctx.stroke();
+    ctx.closePath();
   }
   brushCoords = [[],[]];
   ctx.globalAlpha = tr1;
@@ -1167,8 +1154,6 @@ function preventDefaults (e) {
 id("actions").addEventListener('dragenter', function(e){
   id("actions").classList.add("draggedFile");
 }, false);
-id("dropImg").addEventListener('dragover', function(e){
-}, false);
 ;['dragleave', 'drop'].forEach(eventName => {
   id("dropImg").addEventListener(eventName, function(e){
     id("actions").classList.remove("draggedFile");
@@ -1606,7 +1591,7 @@ document.addEventListener('keydown', function(event) {
   if (event.code == 'KeyG') {id("fillButton").click();}
   if (event.code == 'KeyE') {id("eraserButton").click();}
   if (event.code == 'KeyP') {id("pipetteButton").click();}
-  if (event.code == 'Digit0' && ctrl) {id("zoom-info").click();}
+  if (event.code == 'Digit0' && ctrl) {resetZoom();}
   if (event.code == 'BracketLeft') {changeBrushSize(size-10);}
   if (event.code == 'BracketRight') {changeBrushSize(size+10);}
   if (event.code == 'KeyZ' && ctrl && !shift) {
@@ -1858,18 +1843,7 @@ id("redoButton").addEventListener("click", function(){
 $('#zoominButton').click(function(){scale += 0.2; if (scale>4) scale=4; updateZoom(scale);});
 $('#zoomoutButton').click(function(){scale -= 0.2; if (scale<0.1) scale=0.1; updateZoom(scale);});
 
-$('#zoom-info').click(function(){
-  canvX = 0; canvY = 0;
-  cl("in")[0].style.top = (canvY) + 'px';
-  cl("in")[0].style.left = (canvX) + 'px';
-  if (main_x > main_y) scale = 1200 / main_x - 0.05; else scale = 600 / main_y - 0.05;
-  updateZoom(scale);
-  if (ctrl && shift) {
-    id("TEST").style.display = "flex";
-    var blocks = cl("imgRotate");
-    for (var i=0; i<blocks.length; i++) blocks[i].style.display = "flex";
-  }
-});
+id("zoom-info").addEventListener("click", resetZoom);
 
 id('resetProps').addEventListener("click",function(){
   [].forEach.call(correctSliders, el => {
@@ -1908,16 +1882,17 @@ cl("show-hide-btn")[0].addEventListener("click",function(){
 });
 
 id('imagePropsButton').addEventListener('click', function(){
+  if (adding != 3) {
     block = id("imageProperties");
-    correctingBool = !block.changeVisible();
+    correctingBool = block.changeVisible();
     canvas.style.filter = "brightness("+(100+parseInt(correctSliders[2].value))+"%) contrast("+(100+parseInt(correctSliders[0].value))+"%) saturate("+(100+parseInt(correctSliders[1].value))+"%)";
-  if (correctingBool) {
-    var div = document.createElement('div'); div.setAttribute('id','tempFilter');
-    cl('in')[0].appendChild(div);
-  }
-  if (!correctingBool) {
-    canvas.style.filter = "";
-    cl('in')[0].removeChild(id('tempFilter'));
+    if (correctingBool) {
+      var div = document.createElement('div'); div.setAttribute('id','tempFilter');
+      cl('in')[0].appendChild(div);
+    } else {
+      canvas.style.filter = "";
+      cl('in')[0].removeChild(id('tempFilter'));
+    }
   }
 });
 
@@ -2025,8 +2000,6 @@ $(document).on('click', ".imgCancel", function(){
     id("imageBorder").style.display = "none";
     canvas.style.filter = ""; id('bg_canvas').style.filter = "";
   }
-  if (!correctingBool) {var blocks = cl("button");
-                        for (var i=0; i<blocks.length; i++) blocks[i].style.color = "";}
   adding = 0;
 });
 
@@ -2072,7 +2045,8 @@ $(document).on('click', ".imgApply", function(){
     ctx.closePath();
   } else if (adding == 3) {
     var D = ctx.getImageData(InImg.left, InImg.top, Math.abs(InImg.left)+InImg.width, Math.abs(InImg.top)+InImg.height);
-    updateCanvas(InImg.width, InImg.height, true);
+    updateCanvas(InImg.width, InImg.height);
+    resetZoom();
     ctx.putImageData(D,0,0);
     id("imageBorder").style.display = "none";
     canvas.style.filter = ""; id('bg_canvas').style.filter = "";
@@ -2082,8 +2056,6 @@ $(document).on('click', ".imgApply", function(){
     checker.checked = false;
   }
   instBlock.innerHTML = "";
-  if (!correctingBool) {var blocks = cl("button");
-                        for (var i=0; i<blocks.length; i++) blocks[i].style.color = "";}
   adding = 0;
   ctx.imageSmoothingEnabled = false;
   ActionBuffer.addAction(false);
@@ -2198,8 +2170,7 @@ $('#canvasWidth, #canvasHeight').on('change', function(){
 id("updateCanvas").addEventListener("click", function(){
   let w = parseInt(id("canvasWidth").value), h = parseInt(id("canvasHeight").value);
   updateCanvas(w, h);
-  if (w > h) scale = 1200 / w - 0.05; else scale = 600 / h - 0.05;
-  updateZoom(scale);
+  resetZoom();
   canvX = 0; canvY = 0;
   cl("in")[0].style.top = canvY + 'px';
   cl("in")[0].style.left = canvX + 'px';
