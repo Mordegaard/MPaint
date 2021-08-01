@@ -96,6 +96,11 @@ z-index: 10;
   cursor: pointer;
 }
 .btn:hover {color: white; background: #348bee;}
+.btn.applied {
+  border-color: green;
+  color: green;
+  background: transparent;
+}
 
 .button {
   color: white;
@@ -108,6 +113,16 @@ z-index: 10;
 }
 .button:active {transform: scale(0.85);}
 .btn:active {background: #00e3ff;}
+
+#openCurvesButton {
+  height: 63px;
+  padding: 0;
+  margin: 0;
+  width: 63px;
+}
+#openCurvesButton svg {
+  width: 1.7em;
+}
 
 .button.sl {
   position: relative;
@@ -423,7 +438,7 @@ pointer-events: none;
   transition: transform 0.1s;
 }
 #overlay_container.visible {visibility: visible; transform: none;}
-.overlay_dark, #dropImg {
+#overlay_dark, #dropImg {
  position: absolute;
   width: 100%;
   height: 100%;
@@ -439,11 +454,15 @@ pointer-events: none;
   z-index: 1;
   color: white;
 }
-.overlay .overflow_box {
+.overlay .overflow-box {
   flex-direction: column;
   justify-content: space-around;
   width: 100%;
   height: 100%;
+  display: none;
+}
+.overlay .overflow-box.visible {
+  display: flex;
 }
 .overlay h3 {
   border-bottom: 4px solid rgba(128, 128, 128, 0.35);
@@ -452,7 +471,9 @@ pointer-events: none;
   text-align: center;
   margin: 0px 0px 30px 0px;
 }
-.overlay #editCanvas_container {display: none;}
+.overlay #editCanvas_container .tip {
+  color: #ffffff80;
+}
 .overlay .dim_presets .btn {margin: 4px;}
 .overlay .inputs {margin-right: 60px; flex-direction: column; height: 130px; justify-content: space-evenly; align-items: flex-end;}
 .overlay .canvasPreview {width: 200px; height: 200px;}
@@ -750,7 +771,6 @@ input[type="radio"] {
 #imageProperties.visible {transform: none;}
 
 .in-imageProps {
-  height: 100%;
   flex-direction: column;
   justify-content: flex-start;
   padding: 10px;
@@ -758,35 +778,27 @@ input[type="radio"] {
 }
 
 .h-slider {
-  height: 4px;
-  width: 200px;
-  border-radius: 666px;
-  background: white;
-  margin: 20px 0px;
+  margin: 10px 0px;
   position: relative;
-}
-.h-slider .bump {
-  width: 16px; height: 16px;
-  background: #348bee;
-  border-radius: 50%;
-  position: absolute;
-  left: 50%; top:-6px;
-  transform: translateX(-50%);
 }
 .h-slider .text {
   position: absolute;
-  bottom: 150%; left: 0;
+  top: -33%; left: 0;
   color: #348bee;
   width: 100%;
   font-size: 0.8em;
 }
-.h-slider span {
+.h-slider .zero {
   position: absolute;
-  left: 50%; top: -4px;
-  height: 12px;
-  width: 3px;
-  background: #808080;
-  transform: translateX(-50%);
+  top: 66%; left: 50%;
+  width: 2px; height: 12px;
+  background: #348bee;
+  transform: translate(-50%, -50%);
+}
+.h-slider input {
+  position: relative;
+  width: 200px;
+  height: 5px;
 }
 
 .filter {flex-direction: column; margin: 5px;}
@@ -810,6 +822,8 @@ input[type="radio"] {
 #filter7 div {background: 0% / cover url(images/filter7.jpg);}
 #filter8 div {background: 0% / cover url(images/filter8.jpg);}
 #filter10 div {background: 0% / cover url(images/filter10.jpg);}
+#filter12 div {background: 0% / cover url(images/filter12.jpg);}
+#filter13 div {background: 0% / cover url(images/filter13.jpg);}
 
 #tempFilter {width: 100%; height: 100%; top: 0; position: absolute;}
 
@@ -827,7 +841,7 @@ input[type="radio"] {
 .borderedInput {
   background: none;
   border: 1px solid #348bee;
-  padding: 4px;
+  padding: 3px;
 }
 #fontSize {
   background: none;
@@ -852,7 +866,6 @@ input[type="radio"] {
 }
 .fontSize div span {margin: -4px 0 0 -2px; transform: scale(0.82);}
 
-#filters_container, #download_container {display: none;}
 #filters_container .filters_table {
   flex-direction: column;
   width: 100%;
@@ -927,7 +940,7 @@ input[type="radio"] {
 }
 #download_container input.checker:checked + label.checker, #blur_container input.checker:checked + label.checker {background: #348bee; color: white;}
 
-#dropImg {display: none; z-index: 1;}
+#dropImg {display: none; z-index: 999;}
 #actions.draggedFile #dropImg {display: flex;}
 #dropImg .dropImg {
   padding: 30px 50px;
@@ -963,7 +976,6 @@ input[type="radio"] {
 .overlay .link div svg {transform: rotate(-45deg);}
 .overlay .link input:checked + div {background: #348bee; color: var(--ui-col);}
 
-#blur_container {display: none;}
 #blur_container #blurPower, #filters_container #filterPower {
   width: 50%;
   margin-right: 16px;
@@ -986,7 +998,6 @@ input[type="radio"] {
   padding: 16px 0px 16px 16px;
 }
 
-#histogram_container {display: none;}
 .hist {
   position: absolute;
   left: 0;
@@ -1023,7 +1034,6 @@ input[type="radio"] {
 #imgMove .vert.first {left: 34%;}
 #imgMove .vert.second {left: 66%;}
 
-#curves_container {display: none;}
 #curves_container .curvesPreview {margin-left: 25px; max-height: 400px; max-width: 400px;}
 #curves_container input[name="curve"] {
   display: block;
@@ -1055,10 +1065,8 @@ input[type="radio"] {
   border-bottom: 2px solid rgb(100,100,255);
   padding: 5px 10px 4px 0px;
 }
-#download_container label input:focus + span {
-  color: white;
-  border-color: #00e3ff;
-}
+#download_container label input:focus + span {border-color: #00e3ff;}
+#download_container label input:not(:placeholder-shown) + span {color: white;}
 #download_container #fileSize {
   color: grey;
   font-size: 0.75em;
